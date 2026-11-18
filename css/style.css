@@ -261,3 +261,5 @@ select:focus, input:focus { border-color: var(--yellow); }
 #controlsHint { bottom: 70px; }
 @media (max-width: 760px) { #spiker { display: none; } .ab-next { display: none; } }
 .creator-preview { position: sticky; top: 0; }
+#version { position: fixed; top: 8px; right: 12px; z-index: 60; font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.55); background: rgba(0,0,0,0.35); padding: 3px 8px; border-radius: 6px; pointer-events: none; letter-spacing: 0.5px; }
+#ping { top: 34px; }

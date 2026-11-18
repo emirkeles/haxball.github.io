@@ -696,6 +696,7 @@
   setInterval(() => { if (document.hidden && mode === 'host') pump(performance.now(), 120); }, 50);
 
   // ---------- başlat ----------
+  $('version').textContent = TP.VERSION;
   startAttract();
   show('menu');
   const hash = location.hash.replace('#', '').toUpperCase();
