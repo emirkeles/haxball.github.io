@@ -308,7 +308,7 @@
       rows.map(r => `<tr><td>${r[1]}</td><td>${r[0]}</td><td>${r[2]}</td></tr>`).join('');
     endWinnerChar = w >= 0 ? cs[w] : cs[0];
     const ser = bumpSeries(w);
-    $('endNote').innerHTML = `<b style="font-size:16px;color:#fff">Seri: ${esc(cs[0].name)} ${ser[0]} – ${ser[1]} ${esc(cs[1].name)}</b>` + (mode === 'guest' ? '<br>Rövanş isteği oda sahibine gider.' : '');
+    $('endNote').innerHTML = `<div class="series">SERİ <span style="color:${cs[0].c1}">${ser[0]}</span> – <span style="color:${cs[1].c1}">${ser[1]}</span></div>` + (mode === 'guest' ? '<br>Rövanş isteği oda sahibine gider.' : '');
     show('endScreen');
   }
 
