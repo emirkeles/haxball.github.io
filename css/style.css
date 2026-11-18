@@ -276,3 +276,7 @@ body.replay #replayTag { display: block; animation: readyPulse 1s infinite; }
 body.replay::before, body.replay::after { content: ''; position: fixed; left: 0; right: 0; height: 7vh; background: #000; z-index: 4; pointer-events: none; }
 body.replay::before { top: 0; } body.replay::after { bottom: 0; }
 body.replay #goalBanner { opacity: 0 !important; }
+.end-card { min-width: 380px; }
+.stats td:nth-child(1), .stats td:nth-child(3) { width: 96px; }
+.series { font-size: 18px; font-weight: 900; color: #fff; letter-spacing: 2px; margin-top: 12px; }
+.series span { font-size: 24px; }

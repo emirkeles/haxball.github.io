@@ -556,7 +556,7 @@
       this.ghosts = []; this.celebrate = null;
       this.crowd = null; this.teamColors = ['#e63946', '#3a86ff'];
       this.pitch = null; this.stadium = null; this.bakedScale = 0;
-      this.boardOffset = 0; this.theme = 'gunduz'; this.emotes = [null, null]; this.flyAng = [0, 0];
+      this.boardOffset = 0; this.theme = 'gunduz'; this.emotes = [null, null]; this.flyAng = [0, 0]; this.bumperFlash = [0, 0, 0, 0];
       this.resize();
     }
 
@@ -795,6 +795,25 @@
         case 'emote':
           this.emotes[e.team] = { e: e.e, t: 100 };
           break;
+        case 'perfect':
+          fx.burst(e.x, e.y, 30, { dir: Math.atan2(e.ny, e.nx), spread: 1.2, speed: 7, color: ['#ffffff', '#7fd1ff', '#ffd23f'], life: 28, size: 3 });
+          fx.ring(e.x, e.y, 8, 70, 20, '#7fd1ff', 7);
+          fx.text(e.x, e.y - 30, 'MÜKEMMEL!', '#7fd1ff', 22);
+          this.shakeBy(10); this.zoomPunch = Math.max(this.zoomPunch, 0.035); this.ballVZ = 3.5;
+          break;
+        case 'bumper':
+          if (e.i >= 0) this.bumperFlash[e.i] = 12;
+          fx.ring(e.x, e.y, 18, 36, 12, '#ffd23f', 4);
+          this.shakeBy(2);
+          break;
+        case 'meteor':
+          fx.ring(e.x, e.y, 10, 95, 26, '#ffffff', 10);
+          fx.ring(e.x, e.y, 10, 85, 32, '#ff9f1c', 7);
+          fx.burst(e.x, e.y, 40, { speed: 7, color: ['#ffef99', '#ff9f1c', '#ff4d00', '#5c4033', '#333'], life: 36, size: 3.5, vz: 4 });
+          fx.burst(e.x, e.y, 12, { speed: 1.5, color: ['rgba(70,60,50,0.55)'], life: 60, size: 9, drag: 0.95, shape: 'g' });
+          this.shakeBy(14); this.flash = Math.max(this.flash, 0.25);
+          this.craters = (this.craters || []).concat([{ x: e.x, y: e.y, t: 600 }]).slice(-8);
+          break;
         case 'end':
           this.hype = 1; this.hypeTeam = e.winner;
           this.confettiT = 400; this.confettiCols = e.winner >= 0 ? [tc(e.winner), this.chars[e.winner].c2, '#fff', '#ffd23f'] : ['#fff', '#ffd23f'];
@@ -876,6 +895,47 @@
       ctx.fillStyle = `rgba(0,0,0,${0.26 - Math.min(0.12, z * 0.008)})`;
       ctx.beginPath(); ctx.ellipse(bx + 3 + z * 0.7, by + 5 + z * 0.5, b.r * (1 - Math.min(0.3, z * 0.015)), b.r * 0.85 * (1 - Math.min(0.3, z * 0.015)), 0, 0, TAU); ctx.fill();
 
+      // meteor kraterleri
+      if (this.craters) {
+        for (const c of this.craters) {
+          c.t -= dt;
+          ctx.fillStyle = `rgba(60,40,25,${Math.min(0.45, c.t / 600 * 0.45)})`;
+          ctx.beginPath(); ctx.ellipse(c.x, c.y, 26, 21, 0, 0, TAU); ctx.fill();
+        }
+        this.craters = this.craters.filter(c => c.t > 0);
+      }
+      // buzlu zemin
+      if (sim.chaos && sim.chaos.k === 'buz') {
+        ctx.fillStyle = 'rgba(190,230,255,0.22)'; ctx.fillRect(-C.FW, -C.FH, 2 * C.FW, 2 * C.FH);
+        if (Math.random() < 0.5) this.fx.add({ x: (Math.random() - 0.5) * 2 * C.FW, y: (Math.random() - 0.5) * 2 * C.FH, vx: 0, vy: 0, life: 20, max: 20, size: 1.6, color: '#ffffff', shape: 'r', vr: 0.3 });
+      }
+      // tamponlar (langırt)
+      if (sim.bumpers) sim.bumpers.forEach((bp, i) => {
+        const f = this.bumperFlash[i] > 0 ? this.bumperFlash[i] / 12 : 0;
+        this.bumperFlash[i] = Math.max(0, this.bumperFlash[i] - dt);
+        const rr = bp.r * (1 + f * 0.15);
+        ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.beginPath(); ctx.ellipse(bp.x + 4, bp.y + 6, rr, rr * 0.9, 0, 0, TAU); ctx.fill();
+        ctx.fillStyle = f > 0 ? '#ffffff' : '#e63946'; ctx.strokeStyle = '#0b0f14'; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.arc(bp.x, bp.y, rr, 0, TAU); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = '#ffd23f'; ctx.beginPath(); ctx.arc(bp.x, bp.y, rr * 0.62, 0, TAU); ctx.fill();
+        ctx.strokeStyle = '#0b0f14'; ctx.lineWidth = 2; ctx.stroke();
+        ctx.fillStyle = 'rgba(255,255,255,0.6)'; ctx.beginPath(); ctx.ellipse(bp.x - rr * 0.3, bp.y - rr * 0.35, rr * 0.25, rr * 0.13, -0.5, 0, TAU); ctx.fill();
+      });
+      // meteor hedefleri
+      if (sim.meteors) for (const m of sim.meteors) {
+        const k = 1 - m.t / 70;
+        ctx.strokeStyle = Math.floor(this.time / 4) % 2 ? '#ff4d00' : '#ffd23f'; ctx.lineWidth = 2.5;
+        ctx.beginPath(); ctx.arc(m.x, m.y, 85 * (1 - k * 0.6), 0, TAU); ctx.stroke();
+        ctx.fillStyle = `rgba(255,77,0,${0.08 + k * 0.18})`; ctx.beginPath(); ctx.arc(m.x, m.y, 85, 0, TAU); ctx.fill();
+        ctx.beginPath(); ctx.moveTo(m.x - 12, m.y); ctx.lineTo(m.x + 12, m.y); ctx.moveTo(m.x, m.y - 12); ctx.lineTo(m.x, m.y + 12); ctx.stroke();
+        if (m.t < 18) {
+          const h = m.t * 22, mx = m.x + m.t * 9, my = m.y - h;
+          ctx.strokeStyle = 'rgba(255,159,28,0.8)'; ctx.lineWidth = 6; ctx.lineCap = 'round';
+          ctx.beginPath(); ctx.moveTo(mx, my); ctx.lineTo(mx + 40, my - 70); ctx.stroke();
+          ctx.fillStyle = '#5c4033'; ctx.beginPath(); ctx.arc(mx, my, 9, 0, TAU); ctx.fill();
+        }
+      }
+
       // mayınlar
       if (sim.mines) for (const m of sim.mines) {
         const col = this.teamColors[m.team];
@@ -900,6 +960,7 @@
         ctx.moveTo(1.5, -6); ctx.lineTo(-3.5, 1); ctx.lineTo(0, 1); ctx.lineTo(-1.5, 6); ctx.lineTo(3.5, -1); ctx.lineTo(0, -1); ctx.closePath(); ctx.fill();
         ctx.restore();
       }
+      if (sim.chaos && sim.chaos.k === 'turbo') for (const p of sim.players) if (Math.hypot(p.vx, p.vy) > 2 && Math.random() < 0.6) this.fx.add({ x: p.x, y: p.y, vx: -p.vx * 0.2, vy: -p.vy * 0.2, life: 10, max: 10, size: 2, color: 'rgba(255,210,63,0.8)', shape: 'l', drag: 0.9 });
       // rüzgar
       if (sim.wind && Math.random() < 0.9) {
         const dir = sim.wind.team === 0 ? 1 : -1;
@@ -1256,7 +1317,9 @@
 
       if (p.kickReady && p.charge > 0.08) {
         const k = p.charge;
-        ctx.strokeStyle = k >= 1 ? (Math.floor(this.time / 3) % 2 ? '#ff4d00' : '#ffd23f') : `hsl(${50 - k * 40},100%,${60 - k * 5}%)`;
+        const perfectWin = k >= 1 && p.fullT > 0 && p.fullT <= 10;
+        ctx.strokeStyle = perfectWin ? '#7fd1ff' : k >= 1 ? (Math.floor(this.time / 3) % 2 ? '#ff4d00' : '#ffd23f') : `hsl(${50 - k * 40},100%,${60 - k * 5}%)`;
+        if (perfectWin) ctx.lineWidth = 6;
         ctx.lineWidth = 4; ctx.lineCap = 'round';
         ctx.beginPath(); ctx.arc(0, 0, p.r + 7, -Math.PI / 2, -Math.PI / 2 + TAU * k); ctx.stroke();
       }

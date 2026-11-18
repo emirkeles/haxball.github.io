@@ -1,6 +1,6 @@
 // TOPARLAK — sabitler, yetenekler, renkler
 window.TP = window.TP || {};
-TP.VERSION = 'v2.1 • 18.11.2026';
+TP.VERSION = 'v2.2 • 18.11.2026';
 
 TP.C = {
   TICK: 1 / 60,

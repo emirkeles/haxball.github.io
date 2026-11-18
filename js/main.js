@@ -12,8 +12,9 @@
   let chars = load('tp_chars', null);
   if (!Array.isArray(chars) || chars.length < 2) chars = [TP.defaultChar(0), TP.defaultChar(1)];
   chars = chars.map((c, i) => TP.sanitizeChar(c, i));
-  const settings = Object.assign({ time: 180, goals: 5, bot: 'orta', theme: 'rastgele' }, load('tp_settings', {}));
+  const settings = Object.assign({ time: 180, goals: 5, bot: 'orta', theme: 'rastgele', map: 'rastgele', chaos: 1 }, load('tp_settings', {}));
   if (settings.theme === 'kar') settings.theme = 'rastgele';
+  const pickMap = () => settings.map === 'rastgele' ? (Math.random() < 0.5 ? 'klasik' : 'langirt') : settings.map;
   const pickTheme = () => settings.theme === 'rastgele' ? ['gunduz', 'aksam', 'gece'][(Math.random() * 3) | 0] : settings.theme;
 
   const canvas = $('game');
@@ -70,7 +71,7 @@
     remoteInput = TP.NO_INPUT; remoteQ = 0; lastRemoteAt = performance.now() + 1500; stallShown = false;
     if (m !== 'guest') cs = TP.resolveKits(cs);
     matchChars = cs; matchOpts = opts;
-    sim = new TP.Sim({ chars: cs, timeLimit: opts.time, scoreLimit: opts.goals, decks, client: m === 'guest' });
+    sim = new TP.Sim({ chars: cs, timeLimit: opts.time, scoreLimit: opts.goals, decks, client: m === 'guest', map: opts.map || 'klasik', chaos: !!opts.chaos });
     if (!opts.theme) opts.theme = pickTheme();
     R.setTheme(opts.theme);
     recBuf = []; replay = null; setReplayUI(false);
@@ -96,7 +97,9 @@
       : `${I.label('solo', 'kick')}: basılı tut → BIRAK = şut (rakibe de vurur!) • ${I.label('solo', 'sp')} koş • ${I.label('solo', 'ab')} yetenek • 1-4 emoji • Esc menü`;
     const h = $('controlsHint'); h.textContent = hint; h.classList.remove('fade', 'hidden');
     clearTimeout(hintTimer); hintTimer = setTimeout(() => h.classList.add('fade'), 7000);
-    spiker(`Hoş geldiniz! ${cs[0].name} ile ${cs[1].name} karşı karşıya!`, 3500, true);
+    let ser0 = null; try { ser0 = JSON.parse(sessionStorage.getItem(seriesKey())); } catch (e) {}
+    const mapName = opts.map === 'langirt' ? ' Langırt sahasında' : '';
+    spiker(ser0 && ser0[0] + ser0[1] > 0 ? `Seri ${ser0[0]}-${ser0[1]}! ${cs[0].name} ile ${cs[1].name} yine karşı karşıya!` : `Hoş geldiniz!${mapName} ${cs[0].name} ile ${cs[1].name} karşı karşıya!`, 3500, true);
     A.init(); A.crowdLevel(0.3);
   }
 
@@ -144,8 +147,11 @@
     boom: ['BOOOM! Ortalık toz duman!', 'Bomba patladı, saha savaş alanı!'],
     mine: ['{v} mayına bastı!', 'Mayın tarlası! {v} havada!'],
     pickup: ['{n} enerjiyi kaptı, yetenekler hazır!'],
+    perfect: ['MÜKEMMEL zamanlama! {n} topu ışınladı!', '{n} saniyesi saniyesine vurdu!'],
+    chaos: { buz: 'Zemin buz tuttu! Kimse duramıyor!', devtop: 'Top devleşti! Kaleler daraldı sanki!', meteor: 'Gökten meteor yağıyor! Kırmızı halkalardan kaçın!', turbo: 'Herkese turbo! Hız sınırı yok!' },
     end: ['Ve maç bitti! {n} kazanıyor!', 'Son düdük! Zafer {n}\'nin!'],
   };
+  const CHAOS = { buz: '🧊 BUZLU ZEMİN!', devtop: '⚽ DEV TOP!', meteor: '☄️ METEOR YAĞMURU!', turbo: '⚡ HERKESE TURBO!' };
   const pick = (a) => a[(Math.random() * a.length) | 0];
   function spiker(text, ms, force) {
     const el = $('spiker');
@@ -182,6 +188,11 @@
       case 'boom': A.boom(true); spiker(pick(LINES.boom), 2500, true); break;
       case 'pickup': A.pickup(); spiker(fmtLine(pick(LINES.pickup), { n: nm(e.team) })); break;
       case 'emote': A.pop(); break;
+      case 'perfect': A.perfect(); spiker(fmtLine(pick(LINES.perfect), { n: nm(e.team) }), 2200, true); break;
+      case 'bumper': A.bumper(); break;
+      case 'meteor': A.boom(false); break;
+      case 'chaos': A.chaos(); centerText(CHAOS[e.c] || 'KAOS!', 1600, true); spiker(LINES.chaos[e.c] || 'Kaos başladı!', 3000, true); break;
+      case 'chaosend': spiker('Kaos sona erdi, düzen geri geldi.', 2000); break;
       case 'shieldhit': A.wall(6); break;
       case 'ab': A.ability(e.a); if (LINES.ab[e.a]) spiker(fmtLine(LINES.ab[e.a], { n: nm(e.team) })); break;
       case 'whistle': A.whistle(false); centerText('BAŞLA!', 650, true); break;
@@ -264,6 +275,14 @@
 
   // ---------- maç sonu ----------
   let endWinnerChar = null;
+  // aynı iki oyuncu arasında seri skoru (sekme açık kaldıkça)
+  function seriesKey() { return 'tp_series_' + (matchMode || mode) + '_' + matchChars.map(c => c.name).join('|'); }
+  function bumpSeries(w) {
+    let ser = [0, 0]; try { ser = JSON.parse(sessionStorage.getItem(seriesKey())) || [0, 0]; } catch (e) {}
+    if (w >= 0) ser[w]++;
+    try { sessionStorage.setItem(seriesKey(), JSON.stringify(ser)); } catch (e) {}
+    return ser;
+  }
   function showEnd() {
     if (endShown || !sim || sim.phase !== 'over') return;
     endShown = true;
@@ -288,7 +307,8 @@
     $('endStats').innerHTML = `<tr><td style="color:${cs[0].c1}">${esc(cs[0].name)}</td><td></td><td style="color:${cs[1].c1}">${esc(cs[1].name)}</td></tr>` +
       rows.map(r => `<tr><td>${r[1]}</td><td>${r[0]}</td><td>${r[2]}</td></tr>`).join('');
     endWinnerChar = w >= 0 ? cs[w] : cs[0];
-    $('endNote').textContent = mode === 'guest' ? 'Rövanş isteği oda sahibine gider.' : '';
+    const ser = bumpSeries(w);
+    $('endNote').innerHTML = `<b style="font-size:16px;color:#fff">Seri: ${esc(cs[0].name)} ${ser[0]} – ${ser[1]} ${esc(cs[1].name)}</b>` + (mode === 'guest' ? '<br>Rövanş isteği oda sahibine gider.' : '');
     show('endScreen');
   }
 
@@ -339,16 +359,20 @@
     $('setTime').value = String(settings.time);
     $('setGoals').value = String(settings.goals);
     $('setTheme').value = settings.theme;
+    $('setMap').value = settings.map;
+    $('setChaos').value = String(settings.chaos);
     $('muteBtn').textContent = A.muted ? '🔇 Ses kapalı' : '🔊 Ses açık';
   }
   $('botLevel').onclick = (e) => { const v = e.target.dataset.v; if (!v) return; settings.bot = v; save('tp_settings', settings); A.ui(); refreshMenu(); };
   $('setTime').onchange = (e) => { settings.time = +e.target.value; save('tp_settings', settings); };
   $('setGoals').onchange = (e) => { settings.goals = +e.target.value; save('tp_settings', settings); };
   $('setTheme').onchange = (e) => { settings.theme = e.target.value; save('tp_settings', settings); };
+  $('setMap').onchange = (e) => { settings.map = e.target.value; save('tp_settings', settings); };
+  $('setChaos').onchange = (e) => { settings.chaos = +e.target.value; save('tp_settings', settings); };
   $('muteBtn').onclick = () => { A.init(); A.toggleMute(); refreshMenu(); };
 
   function beginOffline(m) {
-    const opts = { time: settings.time, goals: settings.goals, theme: pickTheme() };
+    const opts = { time: settings.time, goals: settings.goals, theme: pickTheme(), map: pickMap(), chaos: !!settings.chaos };
     if (m === 'bot') {
       const bc = TP.randomChar(['Robo', 'Çelik', 'Vınn', 'Tornado', 'Pervane'][Math.floor(Math.random() * 5)]);
       bc.name = 'BOT ' + bc.name;
@@ -673,7 +697,7 @@
     matchId++;
     draft = null;
     const cs = TP.resolveKits([chars[0], opponentChar]);
-    const opts = { time: settings.time, goals: settings.goals, theme: pickTheme() };
+    const opts = { time: settings.time, goals: settings.goals, theme: pickTheme(), map: pickMap(), chaos: !!settings.chaos };
     const decks = onlineDecks.slice();
     net.send({ t: 'start', id: matchId, chars: cs, opts, decks });
     startMatch('host', cs, opts, decks);
