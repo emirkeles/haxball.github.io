@@ -1,28 +1,43 @@
-# Toparlak Lig ⚽
+# Toparlak Lig ⚽ (v1.8)
 
-Yuvarlak karakterlerle 1v1 tarayıcı futbolu. Sert şut, özel yetenekler, forma editörü.
+Yuvarlak karakterlerle 1v1 tarayıcı futbolu: sert şut, sprint, yetenek kartları, karakter/forma editörü.
+
+**Tarayıcıda oyna:** https://onryzici.github.io/haxball.github.io/
 
 ## Modlar
-- **Bota karşı** (kolay / orta / zor)
-- **Aynı klavyede 2 kişi** (gamepad destekli)
-- **Online 1v1**: biri "Oda Kur" der, 5 haneli kodu (ya da davet linkini) arkadaşına yollar, o da "Katıl" der. Bağlantı WebRTC ile doğrudan iki tarayıcı arasında kurulur (PeerJS), oyun sunucusu gerekmez.
+- **Bota karşı**: kolay / orta / zor
+- **Aynı klavyede 2 kişi**: gamepad de destekleniyor
+- **Online**: oda kodu ya da davet linkiyle. Önce doğrudan bağlantı (WebRTC) deneniyor, olmazsa aktarma sunucusu (MQTT) üzerinden bağlanıyor.
+- **Yerel ağ**: aynı ofis/ev ağında gecikmesiz oynamak için (ayrıntılar aşağıda)
 
-## Tuşlar
-| | Hareket | Şut | Yetenek |
-|---|---|---|---|
-| Tek / Online | WASD / Oklar | Space / X | Shift / Z / E |
-| Aynı klavye P1 | WASD | Space | Sol Shift / Q |
-| Aynı klavye P2 | Oklar | . / Enter | / / Sağ Shift |
-
-Şut tuşunu **basılı tutarak** topa yaklaşırsan halka dolar ve **sert şut** atarsın.
-
-## Yetenekler
-🚀 Roket Şut · 💨 Atılma · 🌀 Falso · 💥 Şok Dalgası · 🧲 Mıknatıs · 🦍 Dev Mod
-
-## Aynı ağda (ofis/ev) gecikmesiz oynama
+## Aynı ağda gecikmesiz oynama
 1. `Oyunu Baslat.command` dosyasına çift tıkla (ya da terminalde `npm install && node server.js`).
-2. Terminalde yazan adresi aç: sen `http://localhost:8080`, arkadaşın `http://<senin-IP>:8080`.
-3. Biriniz **Yerel Ağda Oyna → Oda Kur**, diğeri listede çıkan odaya **Katıl**.
+2. Terminalde yazan adresleri açın: sen `http://localhost:8080`, arkadaşın `http://<senin-IP>:8080`.
+3. Biriniz **Yerel Ağda Oyna → Oda Kur** desin, diğeri listede çıkan odaya **Katıl** desin.
 
-## Lokal çalıştırma
-`index.html`'e çift tıklamak yeterli. Online mod için internet gerekir.
+Bağlantı koparsa oyun 25 saniye boyunca otomatik yeniden bağlanır. Rakibin girdisi takılırsa oyun ikiniz için de donar, yani boş kaleye gol atılamaz.
+
+## Yetenek kartları
+Maç başında 9 karttan 3'ünü seçersin. Maçta bu kartlar rastgele sırayla gelir: birini kullanınca sıradaki çıkar.
+
+🚀 Roket Şut · 💨 Atılma · 🌀 Falso · 💥 Şok Dalgası · 🧲 Mıknatıs · 🦍 Dev Mod · 🧊 Buz · ✨ Işınlanma · 🛡️ Kale Duvarı
+
+## Tuşlar (menüdeki ⌨️ Tuşlar ekranından değiştirilebilir)
+| | Hareket | Şut | Koş | Yetenek |
+|---|---|---|---|---|
+| Tek / Online | WASD / Oklar | Space / X | Shift | E / C / Q |
+| Aynı klavye P1 | WASD | Space | Sol Shift | E / Q |
+| Aynı klavye P2 | Oklar | L / . | K / Sağ Shift | J / / |
+| Gamepad | Sol çubuk | A / RT | RB / LT | B / X / Y |
+
+- Şut tuşunu **basılı tutarak** topa yaklaşırsan halka dolar ve **sert şut** atarsın.
+- Şut anında hangi yöne basıyorsan top o yöne kayar.
+- Sprint barı biterse bir süre koşamazsın.
+
+## Karakter
+İsim, numara, iki forma rengi, 8 desen, 5 yüz ifadesi, 8 saç modeli, saç rengi, 7 aksesuar.
+
+## Dosyalar
+- `index.html`, `css/`, `js/`: oyun (saf HTML/JS, kurulum gerektirmez)
+- `server.js`: yerel ağ sunucusu (Node.js + `ws`)
+- `js/sim.js`: fizik ve maç kuralları, `js/render.js`: çizim, `js/net.js`: bağlantı
