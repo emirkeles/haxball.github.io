@@ -328,7 +328,7 @@
         // emoji (donukken de atılabilir)
         if (p.emoCd > 0) p.emoCd--;
         const emo = raw.emo || 0;
-        if (emo && emo !== p.lastEmo && p.emoCd <= 0) { this.emit('emote', { team: p.team, e: emo }); p.emoCd = 40; }
+        if (emo && emo !== p.lastEmo && p.emoCd <= 0 && this.phase !== 'goal') { this.emit('emote', { team: p.team, e: emo }); p.emoCd = 40; }
         p.lastEmo = emo;
         const l = Math.hypot(ax, ay);
         if (l > 1) { ax /= l; ay /= l; }

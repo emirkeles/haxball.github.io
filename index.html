@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;600;700;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=14">
+<link rel="stylesheet" href="css/style.css?v=15">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='44' fill='%23e63946' stroke='%23111' stroke-width='8'/><circle cx='38' cy='44' r='9' fill='white'/><circle cx='62' cy='44' r='9' fill='white'/><circle cx='40' cy='45' r='4'/><circle cx='64' cy='45' r='4'/></svg>">
 </head>
 <body>
@@ -31,6 +31,8 @@
   <div id="spiker"><span class="mic">🎙️</span><span id="spikerText"></span></div>
   <div id="controlsHint"></div>
   <div id="centerText"></div>
+  <div class="tauntPanel hidden" id="taunt0"></div>
+  <div class="tauntPanel right hidden" id="taunt1"></div>
   <div id="goalBanner"><div class="gb-word">GOL!</div><div class="gb-sub"></div></div>
 </div>
 
@@ -75,6 +77,7 @@
         <select id="setTheme"><option value="rastgele">Rastgele</option><option value="gunduz">Gündüz</option><option value="aksam">Akşam</option><option value="gece">Gece</option></select>
       </label>
       <button class="btn small ghost" id="muteBtn">🔊 Ses</button>
+      <button class="btn small ghost" data-go="taunts">💬 Laflar</button>
       <button class="btn small ghost" data-go="keys">⌨️ Tuşlar</button>
       <button class="btn small ghost" data-go="help">❓ Nasıl Oynanır</button>
     </div>
@@ -213,6 +216,19 @@
   </div>
 </div>
 
+<!-- LAFLAR -->
+<div id="taunts" class="screen hidden">
+  <div class="keys-wrap card">
+    <h2>Laf Sokma</h2>
+    <div class="muted">Golden sonraki 5 saniyede bu lafları rakibine atabilirsin. İstediğin gibi değiştir (en fazla 48 karakter).</div>
+    <div class="keylist" id="tauntList"></div>
+    <div class="keys-foot">
+      <button class="btn ghost small" id="tauntReset">Varsayılana dön</button>
+      <button class="btn primary" id="tauntSave">Kaydet</button>
+    </div>
+  </div>
+</div>
+
 <!-- TUŞLAR -->
 <div id="keys" class="screen hidden">
   <div class="keys-wrap card">
@@ -258,13 +274,13 @@
 
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script src="https://unpkg.com/mqtt@5.10.1/dist/mqtt.min.js"></script>
-<script src="js/config.js?v=14"></script>
-<script src="js/sim.js?v=14"></script>
-<script src="js/bot.js?v=14"></script>
-<script src="js/audio.js?v=14"></script>
-<script src="js/input.js?v=14"></script>
-<script src="js/render.js?v=14"></script>
-<script src="js/net.js?v=14"></script>
-<script src="js/main.js?v=14"></script>
+<script src="js/config.js?v=15"></script>
+<script src="js/sim.js?v=15"></script>
+<script src="js/bot.js?v=15"></script>
+<script src="js/audio.js?v=15"></script>
+<script src="js/input.js?v=15"></script>
+<script src="js/render.js?v=15"></script>
+<script src="js/net.js?v=15"></script>
+<script src="js/main.js?v=15"></script>
 </body>
 </html>

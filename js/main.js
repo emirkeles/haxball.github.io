@@ -40,7 +40,7 @@
   const mouse = { x: 0, y: 0 };
   window.addEventListener('mousemove', (e) => { mouse.x = e.clientX; mouse.y = e.clientY; });
 
-  const SCREENS = ['menu', 'creator', 'online', 'help', 'pause', 'endScreen', 'draft', 'keys'];
+  const SCREENS = ['menu', 'creator', 'online', 'help', 'pause', 'endScreen', 'draft', 'keys', 'taunts'];
   function show(id) {
     for (const s of SCREENS) $(s).classList.toggle('hidden', s !== id);
     if (id === 'menu') refreshMenu();
@@ -410,6 +410,7 @@
     else if (g === 'creator') openCreator(0);
     else if (g === 'help') { fillHelp(); show('help'); }
     else if (g === 'keys') { buildKeys(); show('keys'); }
+    else if (g === 'taunts') { buildTauntEdit(); show('taunts'); }
     else if (g === 'menu') { I.cancelCapture(); show('menu'); }
   });
 
@@ -742,6 +743,12 @@
         matchId = m.id; draft = null;
         startMatch('guest', m.chars.map((c, i) => TP.sanitizeChar(c, i)), m.opts, m.decks);
         break;
+      case 'say': {
+        if (mode !== 'host' && mode !== 'guest') return;
+        const team = net.role === 'host' ? 1 : 0;
+        if (typeof m.text === 'string') { R.say(team, m.text.slice(0, 48)); A.pop(); }
+        break;
+      }
       case 'rematch':
         if (net.role === 'host' && sim && (sim.phase === 'over' || endShown)) hostBeginDraft();
         else if (net.role === 'host') toast('Rakip rövanş istiyor');
@@ -834,6 +841,62 @@
   }
   window.addEventListener('keydown', (e) => { if (replay && replay.frames && (e.code === 'Space' || e.code === 'Enter')) { replay = null; setReplayUI(false); R.reset(); } });
 
+  // ---------- LAF SOKMA (gol sonrası 5 sn) ----------
+  let taunts = load('tp_taunts', null);
+  if (!Array.isArray(taunts) || taunts.length !== 6) taunts = TP.TAUNTS.slice();
+  const TAUNT_KEYS = { solo: ['Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5', 'Digit6'], p2: ['KeyU', 'KeyI', 'KeyO', 'KeyJ', 'KeyK', 'KeyL'] };
+  const tauntCd = [0, 0];
+  function myTeams() {
+    if (mode === 'local') return [0, 1];
+    if (mode === 'bot' || mode === 'host') return [0];
+    if (mode === 'guest') return [1];
+    return [];
+  }
+  function keyNameT(team) { return mode === 'local' && team === 1 ? ['U', 'I', 'O', 'J', 'K', 'L'] : ['1', '2', '3', '4', '5', '6']; }
+  let tauntOpen = false;
+  function updateTauntPanels() {
+    const open = !!sim && sim.phase === 'goal' && mode !== 'attract' && !endShown;
+    if (open === tauntOpen) return;
+    tauntOpen = open;
+    const mine = myTeams();
+    for (let t = 0; t < 2; t++) {
+      const el = $('taunt' + t);
+      if (!open || !mine.includes(t)) { el.classList.add('hidden'); continue; }
+      const kn = keyNameT(t);
+      el.innerHTML = '<div class="tp-h">💬 Laf sok</div>' + taunts.map((x, i) => `<button class="tp-b" data-t="${t}" data-i="${i}"><b>${kn[i]}</b>${esc(x)}</button>`).join('');
+      el.classList.remove('hidden');
+    }
+  }
+  function sayTaunt(team, i) {
+    const now = performance.now();
+    if (now < tauntCd[team]) return;
+    tauntCd[team] = now + 900;
+    const text = String(taunts[i] || '').slice(0, 48);
+    if (!text) return;
+    R.say(team, text); A.pop();
+    if (net && (mode === 'host' || mode === 'guest')) net.send({ t: 'say', text });
+    const btn = $('taunt' + team).querySelector(`[data-i="${i}"]`);
+    if (btn) { btn.classList.remove('sent'); void btn.offsetWidth; btn.classList.add('sent'); }
+  }
+  document.addEventListener('click', (e) => { const b = e.target.closest('.tp-b'); if (b) sayTaunt(+b.dataset.t, +b.dataset.i); });
+  window.addEventListener('keydown', (e) => {
+    if (!tauntOpen || e.repeat) return;
+    const mine = myTeams();
+    for (const t of mine) {
+      const keys = mode === 'local' && t === 1 ? TAUNT_KEYS.p2 : TAUNT_KEYS.solo;
+      const i = keys.indexOf(e.code);
+      if (i >= 0) { sayTaunt(t, i); return; }
+    }
+  });
+  function buildTauntEdit() {
+    $('tauntList').innerHTML = taunts.map((x, i) => `<div class="krow"><span>${i + 1}</span><input class="tinp" data-i="${i}" maxlength="48" value="${esc(x)}"></div>`).join('');
+  }
+  $('tauntSave').onclick = () => {
+    taunts = [...document.querySelectorAll('.tinp')].map((el, i) => el.value.trim().slice(0, 48) || TP.TAUNTS[i]);
+    save('tp_taunts', taunts); A.uiOk(); toast('Laflar kaydedildi'); show('menu');
+  };
+  $('tauntReset').onclick = () => { taunts = TP.TAUNTS.slice(); save('tp_taunts', taunts); buildTauntEdit(); A.ui(); };
+
   // ---------- döngü ----------
   let last = performance.now();
   function pump(now, maxSteps) {
@@ -888,6 +951,7 @@
 
     }
     updateHUD();
+    updateTauntPanels();
     if (visible('menu')) drawChar($('menuPreview'), chars[0]);
     if (visible('creator')) drawChar($('bigPreview'), chars[editIdx], { ring: (performance.now() % 2000) < 400 });
     if (visible('draft') && draft && draft.ch) drawChar($('draftChar'), draft.ch, { scale: 0.28 });

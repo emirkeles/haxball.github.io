@@ -556,9 +556,11 @@
       this.ghosts = []; this.celebrate = null;
       this.crowd = null; this.teamColors = ['#e63946', '#3a86ff'];
       this.pitch = null; this.stadium = null; this.bakedScale = 0;
-      this.boardOffset = 0; this.theme = 'gunduz'; this.emotes = [null, null]; this.flyAng = [0, 0]; this.bumperFlash = [0, 0, 0, 0];
+      this.boardOffset = 0; this.theme = 'gunduz'; this.emotes = [null, null]; this.taunts = [null, null]; this.flyAng = [0, 0]; this.bumperFlash = [0, 0, 0, 0];
       this.resize();
     }
+
+    say(team, text) { this.taunts[team] = { text: String(text).slice(0, 48), t: 200 }; }
 
     setTheme(t) {
       if (t === this.theme && this.pitch) return;
@@ -567,7 +569,7 @@
 
     reset() {
       this.fx = new FX(); this.ghosts = []; this.confettiT = 0; this.hype = 0; this.shake = 0; this.flash = 0; this.zoomPunch = 0;
-      this.celebrate = null; this.ballZ = 0; this.ballVZ = 0; this.emotes = [null, null];
+      this.celebrate = null; this.ballZ = 0; this.ballVZ = 0; this.emotes = [null, null]; this.taunts = [null, null];
     }
 
     setTeams(chars) {
@@ -1038,6 +1040,28 @@
         ctx.beginPath(); ctx.moveTo(-5, 12); ctx.lineTo(0, 20); ctx.lineTo(5, 12); ctx.fill();
         ctx.font = '20px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
         ctx.fillText(TP.EMOTES[em.e] || '❔', 0, -2);
+        ctx.restore();
+      }
+
+      // laf balonları
+      for (let i = 0; i < 2; i++) {
+        const tt = this.taunts && this.taunts[i];
+        if (!tt) continue;
+        tt.t -= dt;
+        if (tt.t <= 0) { this.taunts[i] = null; continue; }
+        const p = P[i], [x, y] = pos(p);
+        const k = Math.min(1, (200 - tt.t) / 8), out = Math.min(1, tt.t / 15);
+        ctx.save();
+        ctx.font = '800 13px Rubik, system-ui, sans-serif';
+        const w = Math.min(280, ctx.measureText(tt.text).width) + 22, h = 30;
+        let bx2 = Math.max(-C.OW + w / 2, Math.min(C.OW - w / 2, x));
+        const by2 = y - p.r - 30 - (this.emotes[i] ? 42 : 0);
+        ctx.translate(bx2, by2); ctx.scale((0.7 + 0.3 * k) * out, (0.7 + 0.3 * k) * out);
+        ctx.fillStyle = '#ffffff'; ctx.strokeStyle = this.teamColors[i]; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.roundRect(-w / 2, -h, w, h, 12); ctx.fill(); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(x - bx2 - 6, 0); ctx.lineTo(x - bx2, 9); ctx.lineTo(x - bx2 + 6, 0); ctx.fill();
+        ctx.fillStyle = '#0b0f14'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(tt.text, 0, -h / 2, 280);
         ctx.restore();
       }
 

@@ -1,6 +1,6 @@
 // TOPARLAK — sabitler, yetenekler, renkler
 window.TP = window.TP || {};
-TP.VERSION = 'v2.4 • 18.11.2026';
+TP.VERSION = 'v2.5 • 18.11.2026';
 
 TP.C = {
   TICK: 1 / 60,
@@ -39,7 +39,7 @@ TP.C = {
   CHARGE_TIME: 55,  // tick'te tam şarj
   KICK_RECOIL: 0.35,
 
-  GOAL_PAUSE: 170,  // gol sonrası tick
+  GOAL_PAUSE: 300,  // gol sonrası tick (5 sn: laf sokma zamanı)
   KICKOFF_FREEZE: 50,
 };
 
@@ -67,6 +67,14 @@ TP.ABILITIES = {
 };
 TP.ABILITY_KEYS = Object.keys(TP.ABILITIES);
 TP.EMOTES = ['', '😂', '🔥', '😡', '👍'];
+TP.TAUNTS = [
+  'Siktir git, kaleci misin direk mi? 😂',
+  'Ağla ağla, kimse duymaz!',
+  'Oha amk, ne oynuyorsun sen?',
+  'Bok gibi oynuyorsun kardeşim',
+  'Top orada geri zekalı, orada!',
+  'Hadi lan, git yatağında ağla',
+];
 TP.THEMES = [{ id: 'rastgele', name: 'Rastgele' }, { id: 'gunduz', name: 'Gündüz' }, { id: 'aksam', name: 'Akşam' }, { id: 'gece', name: 'Gece' }];
 TP.DECK_SIZE = 3;
 TP.randomDeck = function () { const k = TP.ABILITY_KEYS.slice().sort(() => Math.random() - 0.5); return k.slice(0, TP.DECK_SIZE); };

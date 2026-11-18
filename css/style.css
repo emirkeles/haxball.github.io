@@ -296,3 +296,12 @@ body.replay #goalBanner { opacity: 0 !important; }
 .slot.armed { border-color: #ff9f1c; animation: readyPulse 0.6s infinite; }
 .abcard .ab-stam { width: 100%; margin: 0; }
 @media (max-width: 760px) { .slot { width: 40px; height: 40px; } .slot .s-icon { font-size: 20px; } }
+/* laf sokma paneli */
+.tauntPanel { position: absolute; left: 16px; bottom: 112px; display: flex; flex-direction: column; gap: 5px; pointer-events: auto; max-width: 330px; animation: pop .3s cubic-bezier(.2,1.6,.4,1); }
+.tauntPanel.right { left: auto; right: 16px; align-items: flex-end; }
+.tp-h { font-weight: 900; font-size: 13px; color: var(--yellow); letter-spacing: 1px; text-shadow: 0 2px 3px #000; }
+.tp-b { display: flex; gap: 8px; align-items: center; text-align: left; border: 2px solid rgba(255,255,255,0.15); background: rgba(10,14,20,0.92); color: #fff; font-family: inherit; font-weight: 700; font-size: 13px; padding: 6px 10px; border-radius: 10px; cursor: pointer; }
+.tp-b b { background: var(--yellow); color: #1a1405; border-radius: 6px; min-width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; flex-shrink: 0; }
+.tp-b:hover { border-color: var(--yellow); }
+.tp-b.sent { animation: readyPulse .4s; border-color: #06d6a0; }
+.tinp { flex: 1; margin-left: 12px; }
