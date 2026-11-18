@@ -1,0 +1,162 @@
+// TOPARLAK — tamamen sentezlenmiş ses (dosya yok)
+(function () {
+  let ctx = null, master = null, crowdGain = null, noiseBuf = null, muted = false;
+  try { muted = localStorage.getItem('tp_muted') === '1'; } catch (e) {}
+
+  function init() {
+    if (ctx) { if (ctx.state === 'suspended') ctx.resume(); return; }
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    ctx = new AC();
+    master = ctx.createGain();
+    master.gain.value = muted ? 0 : 0.8;
+    const comp = ctx.createDynamicsCompressor();
+    comp.threshold.value = -14; comp.ratio.value = 4;
+    master.connect(comp); comp.connect(ctx.destination);
+    noiseBuf = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
+    const d = noiseBuf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    startCrowd();
+  }
+
+  function noise(dur, type, freq, q, gain, when, attack) {
+    if (!ctx) return;
+    const t = (when || ctx.currentTime);
+    const src = ctx.createBufferSource(); src.buffer = noiseBuf;
+    src.loop = dur > 1.9;
+    const f = ctx.createBiquadFilter(); f.type = type; f.frequency.value = freq; f.Q.value = q || 1;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(gain, t + (attack || 0.004));
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    src.connect(f); f.connect(g); g.connect(master);
+    src.start(t, Math.random() * 1.5); src.stop(t + dur + 0.05);
+    return f;
+  }
+
+  function tone(type, f0, f1, dur, gain, when) {
+    if (!ctx) return;
+    const t = when || ctx.currentTime;
+    const o = ctx.createOscillator(); o.type = type;
+    o.frequency.setValueAtTime(f0, t);
+    o.frequency.exponentialRampToValueAtTime(Math.max(1, f1), t + dur);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(gain, t + 0.005);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); g.connect(master);
+    o.start(t); o.stop(t + dur + 0.05);
+    return o;
+  }
+
+  function startCrowd() {
+    // Sürekli stadyum uğultusu
+    crowdGain = ctx.createGain(); crowdGain.gain.value = 0.05;
+    const src = ctx.createBufferSource(); src.buffer = noiseBuf; src.loop = true;
+    const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 700; f.Q.value = 0.6;
+    const f2 = ctx.createBiquadFilter(); f2.type = 'lowpass'; f2.frequency.value = 1800;
+    const lfo = ctx.createOscillator(); lfo.frequency.value = 0.17;
+    const lg = ctx.createGain(); lg.gain.value = 0.015;
+    lfo.connect(lg); lg.connect(crowdGain.gain);
+    src.connect(f); f.connect(f2); f2.connect(crowdGain); crowdGain.connect(master);
+    src.start(); lfo.start();
+  }
+
+  function roar(intensity, dur) {
+    if (!ctx) return;
+    const t = ctx.currentTime;
+    for (const [fr, q] of [[500, 0.8], [1100, 1.2], [2400, 1.5]]) {
+      const src = ctx.createBufferSource(); src.buffer = noiseBuf; src.loop = true;
+      const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = fr; f.Q.value = q;
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(0.22 * intensity, t + 0.25);
+      g.gain.setValueAtTime(0.22 * intensity, t + dur * 0.4);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      // tezahürat dalgalanması
+      const lfo = ctx.createOscillator(); lfo.frequency.value = 2.2 + Math.random();
+      const lg = ctx.createGain(); lg.gain.value = 0.05 * intensity;
+      lfo.connect(lg); lg.connect(g.gain);
+      src.connect(f); f.connect(g); g.connect(master);
+      src.start(t, Math.random()); src.stop(t + dur + 0.1); lfo.start(t); lfo.stop(t + dur);
+    }
+  }
+
+  const S = {
+    init,
+    get muted() { return muted; },
+    toggleMute() {
+      muted = !muted;
+      try { localStorage.setItem('tp_muted', muted ? '1' : '0'); } catch (e) {}
+      if (master) master.gain.value = muted ? 0 : 0.8;
+      return muted;
+    },
+    kick(s) {
+      const k = Math.min(1, s / 11);
+      tone('sine', 190 + 60 * k, 45, 0.16, 0.55 + 0.3 * k);
+      noise(0.05, 'highpass', 2200, 0.7, 0.12 + 0.2 * k);
+    },
+    power(s) {
+      tone('sine', 230, 38, 0.3, 0.9);
+      tone('triangle', 120, 40, 0.25, 0.4);
+      noise(0.09, 'bandpass', 1500, 0.8, 0.5);
+      noise(0.35, 'lowpass', 400, 0.7, 0.4, 0, 0.01);
+    },
+    rocket() {
+      tone('sawtooth', 90, 30, 0.45, 0.35);
+      noise(0.7, 'bandpass', 900, 0.5, 0.5, 0, 0.01);
+      tone('sine', 260, 40, 0.3, 0.9);
+    },
+    curve() {
+      tone('sine', 200, 50, 0.15, 0.6);
+      tone('sine', 600, 1400, 0.35, 0.08);
+    },
+    post(s) {
+      const g = Math.min(0.5, 0.12 + s * 0.04);
+      for (const f of [1320, 1980, 2640]) tone('sine', f, f * 0.995, 0.6, g / (f / 1320));
+      roar(0.5, 1.3);
+    },
+    wall(s) { tone('sine', 140, 60, 0.08, Math.min(0.3, s * 0.04)); },
+    net(s) { noise(0.25, 'bandpass', 600, 1.2, Math.min(0.35, 0.08 + s * 0.03)); },
+    bump(s) { tone('sine', 110, 50, 0.15, Math.min(0.6, 0.15 + s * 0.06)); noise(0.06, 'lowpass', 800, 1, 0.2); },
+    burn() { noise(0.5, 'bandpass', 1200, 0.6, 0.6, 0, 0.005); tone('square', 300, 60, 0.3, 0.15); },
+    whistle(long) {
+      if (!ctx) return;
+      const t = ctx.currentTime;
+      const n = long ? 3 : 1;
+      for (let i = 0; i < n; i++) {
+        const st = t + i * 0.42, dur = i === n - 1 && long ? 0.9 : 0.32;
+        const o = ctx.createOscillator(); o.type = 'square'; o.frequency.value = 2650;
+        const vib = ctx.createOscillator(); vib.frequency.value = 38;
+        const vg = ctx.createGain(); vg.gain.value = 90; vib.connect(vg); vg.connect(o.frequency);
+        const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 2700; f.Q.value = 3;
+        const g = ctx.createGain();
+        g.gain.setValueAtTime(0.0001, st); g.gain.exponentialRampToValueAtTime(0.14, st + 0.02);
+        g.gain.setValueAtTime(0.14, st + dur - 0.05); g.gain.exponentialRampToValueAtTime(0.0001, st + dur);
+        o.connect(f); f.connect(g); g.connect(master);
+        o.start(st); vib.start(st); o.stop(st + dur + 0.05); vib.stop(st + dur + 0.05);
+      }
+    },
+    goal() {
+      roar(1.4, 4.5);
+      tone('sine', 80, 35, 0.6, 0.8);
+      noise(0.6, 'lowpass', 300, 1, 0.6);
+    },
+    ability(a) {
+      switch (a) {
+        case 'atilma': noise(0.3, 'bandpass', 1800, 1.5, 0.45); tone('sine', 300, 900, 0.18, 0.12); break;
+        case 'sok': tone('sine', 120, 25, 0.6, 1); noise(0.5, 'lowpass', 600, 0.7, 0.7); break;
+        case 'roket': tone('square', 220, 660, 0.18, 0.08); tone('square', 330, 990, 0.18, 0.06, ctx && ctx.currentTime + 0.08); break;
+        case 'falso': tone('sine', 400, 1200, 0.3, 0.15); tone('sine', 1200, 400, 0.3, 0.1, ctx && ctx.currentTime + 0.15); break;
+        case 'miknatis': tone('sawtooth', 70, 140, 1.4, 0.07); tone('sine', 140, 280, 1.4, 0.12); break;
+        case 'dev': tone('sawtooth', 60, 30, 0.7, 0.25); tone('sine', 110, 55, 0.7, 0.5); break;
+      }
+    },
+    ui() { tone('sine', 880, 660, 0.08, 0.12); },
+    uiOk() { tone('sine', 660, 990, 0.12, 0.14); },
+    tick() { tone('sine', 1000, 1000, 0.06, 0.12); },
+    crowdLevel(v) { if (crowdGain) crowdGain.gain.setTargetAtTime(0.04 + v * 0.08, ctx.currentTime, 0.3); },
+    end() { roar(1, 5); },
+  };
+  TP.Audio = S;
+})();
