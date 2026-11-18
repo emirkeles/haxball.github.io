@@ -226,7 +226,7 @@
       const el = $('centerText');
       if (!el.classList.contains('show') || el.textContent !== 'HAZIR') { el.textContent = 'HAZIR'; el.classList.add('show'); el.classList.remove('pop'); clearTimeout(centerText.tm); }
     }
-    if (net && (mode === 'host' || mode === 'guest')) $('ping').textContent = `ping ${Math.round(net.rtt)} ms`;
+    if (net && (mode === 'host' || mode === 'guest')) $('ping').textContent = `ping ${Math.round(net.rtt)} ms${net.via === 'relay' ? ' • sunucu' : ''}`;
   }
 
   // ---------- maç sonu ----------
@@ -529,8 +529,9 @@
   }
   function wireNet(n) {
     n.on('error', (m) => onlineErr(m));
-    n.on('connected', () => {
-      $('onlineStatus').textContent = 'Bağlandı!';
+    n.on('status', (m) => { $('onlineStatus').textContent = m; });
+    n.on('connected', (via) => {
+      $('onlineStatus').textContent = via === 'relay' ? 'Bağlandı (sunucu üzerinden)!' : 'Bağlandı!';
       n.send({ t: 'hello', ch: chars[0] });
       A.uiOk();
     });
