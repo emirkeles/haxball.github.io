@@ -151,6 +151,7 @@
         case 'miknatis': tone('sawtooth', 70, 140, 1.4, 0.07); tone('sine', 140, 280, 1.4, 0.12); break;
         case 'dev': tone('sawtooth', 60, 30, 0.7, 0.25); tone('sine', 110, 55, 0.7, 0.5); break;
         case 'buz': for (const f of [1800, 2400, 3100]) tone('sine', f, f * 1.02, 0.5, 0.06); noise(0.35, 'highpass', 4000, 0.8, 0.2); break;
+        case 'eldiven': tone('triangle', 500, 750, 0.18, 0.12); noise(0.12, 'bandpass', 2500, 2, 0.15); break;
         case 'isinlan': tone('sine', 1500, 200, 0.25, 0.15); tone('triangle', 200, 1600, 0.25, 0.1, ctx && ctx.currentTime + 0.12); break;
         case 'hayalet': tone('sine', 600, 200, 0.6, 0.12); tone('sine', 900, 300, 0.6, 0.06); break;
         case 'turbo': tone('sawtooth', 100, 400, 0.4, 0.15); noise(0.4, 'bandpass', 2000, 1, 0.3); break;

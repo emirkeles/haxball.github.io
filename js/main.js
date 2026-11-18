@@ -140,7 +140,7 @@
     burn: ['{v} alevlerin içinde kaldı!', 'Roket {v}\'yi yerle bir etti!'],
     tired: ['{n} nefes nefese kaldı!', '{n} çok yoruldu, biraz dinlenmeli.'],
     ab: { dev: '{n} devleşti!', sok: '{n} şok dalgasıyla ortalığı dağıttı!', atilma: '{n} rüzgar gibi atıldı!', roket: '{n} roket şutu hazırlıyor!', falso: '{n} falsolu bir şey deneyecek…',
-      miknatis: '{n} topu kendine çekiyor!', buz: '{n} rakibini dondurdu!', isinlan: '{n} topun arkasına ışınlandı!', kalkan: '{n} kalesinin önüne duvar ördü!',
+      miknatis: '{n} topu ayağına çekiyor!', buz: '{n} rakibini dondurdu!', isinlan: '{n} topun arkasına ışınlandı!', kalkan: '{n} kalesinin önüne duvar ördü!', eldiven: '{n} eldivenlerini giydi!',
       hayalet: '{n} hayalete dönüştü!', turbo: '{n} turboyu açtı!', kucult: '{n} rakibini karıncaya çevirdi!', ters: '{n} rakibinin beynini ters çevirdi!', bomba: '{n} topa bomba bağladı!',
       mayin: '{n} mayın döşüyor…', ruzgar: '{n} fırtına çıkardı!', lastik: 'Top lastik gibi! {n} işi şansa bıraktı.', cagir: '{n} topu sihirle çağırdı!', sis: 'Top kayboldu! {n} sis bıraktı!' },
     overtime: ['Süre bitti, eşitlik! Altın gol zamanı!'],
@@ -197,7 +197,9 @@
       case 'chaos': A.chaos(); centerText(CHAOS[e.c] || 'KAOS!', 1600, true); spiker(LINES.chaos[e.c] || 'Kaos başladı!', 3000, true); break;
       case 'chaosend': spiker('Kaos sona erdi, düzen geri geldi.', 2000); break;
       case 'shieldhit': A.wall(6); break;
-      case 'ab': A.ability(e.a); if (LINES.ab[e.a]) spiker(fmtLine(LINES.ab[e.a], { n: nm(e.team) })); break;
+      case 'catch': A.wall(4); if (Math.random() < 0.5) spiker(fmtLine('{n} topu kucakladı!', { n: nm(e.team) })); break;
+      case 'ab': A.ability(e.a); if (e.a === 'buz' && e.hit === 0) spiker(fmtLine('{n} ıskaladı, buz boşa gitti!', { n: nm(e.team) }));
+        else if (LINES.ab[e.a]) spiker(fmtLine(LINES.ab[e.a], { n: nm(e.team) })); break;
       case 'whistle': A.whistle(false); centerText('BAŞLA!', 650, true); break;
       case 'goal': {
         A.goal(); slowT = 0.6; goalBanner(e);
@@ -261,7 +263,7 @@
           el.title = A_.name;
         });
       }
-      const armed = { roket: p.rocket > 0, falso: p.curve > 0, miknatis: p.magnet > 0, dev: p.giant > 0, hayalet: p.ghost > 0, turbo: p.turbo > 0 };
+      const armed = { roket: p.rocket > 0, falso: p.curve > 0, miknatis: p.magnet > 0, dev: p.giant > 0, hayalet: p.ghost > 0, turbo: p.turbo > 0, eldiven: p.glove > 0 };
       slots.forEach((el, k) => {
         const a = p.deck && p.deck[k];
         if (!a) return;
@@ -517,7 +519,7 @@
 
   // ---------- KART SEÇİMİ ----------
   const CARD_COLORS = { roket: ['#ff7b00', '#7a1e00'], atilma: ['#9aa5b1', '#2b3748'], falso: ['#9b5de5', '#3c1a6e'], sok: ['#f8f9fa', '#5c677d'], miknatis: ['#3a86ff', '#0b3d91'],
-    dev: ['#8ac926', '#2d5016'], buz: ['#a2d2ff', '#1d4e89'], isinlan: ['#e0c3ff', '#5a189a'], kalkan: ['#ffd23f', '#7a5c00'],
+    dev: ['#8ac926', '#2d5016'], buz: ['#a2d2ff', '#1d4e89'], isinlan: ['#e0c3ff', '#5a189a'], kalkan: ['#ffd23f', '#7a5c00'], eldiven: ['#ffe08a', '#8a5a00'],
     hayalet: ['#dfe7fd', '#4a4e69'], turbo: ['#ffd23f', '#b5179e'], kucult: ['#c9ada7', '#5e548e'], ters: ['#ff5d8f', '#590d22'], bomba: ['#555', '#111'],
     mayin: ['#e85d04', '#370617'], ruzgar: ['#cfe8ff', '#277da1'], lastik: ['#ff7b00', '#7a3200'], cagir: ['#c77dff', '#240046'], sis: ['#adb5bd', '#343a40'] };
   let draft = null;

@@ -98,9 +98,10 @@
         else if (a === 'sok' && dOpp < 90 && Math.hypot(opp.x - b.x, opp.y - b.y) < 60) use = true;
         else if (a === 'miknatis' && dB < 150 && dB > 50 && dO < dB) use = true;
         else if (a === 'dev' && (defend || dOpp < 70)) use = true;
-        else if (a === 'buz' && dO < dB && dO < 80) use = true;
+        else if (a === 'buz' && dO < dB && dO < 80 && dOpp < C.BUZ_RANGE) use = true;
         else if (a === 'isinlan' && (wrongSide || dB > 220) && !defend) use = true;
         else if (a === 'kalkan' && Math.abs(ownX - b.x) < 200 && b.vx * side > 1.5) use = true;
+        else if (a === 'eldiven' && side * b.x > 0 && b.vx * side > 1 && dB < 160) use = true;
         else if (a === 'hayalet' && dOpp < 60 && dB < 120) use = true;
         else if (a === 'turbo' && dB > 160) use = true;
         else if ((a === 'kucult' || a === 'ters') && dOpp < 160 && dO < dB + 40) use = true;
