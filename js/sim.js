@@ -490,7 +490,8 @@
         sc: this.score, ko: this.kickoffTeam, lt: this.lastTouch, w: this.winner, lg: this.lastGoal,
         b: [r(b.x), r(b.y), r(b.vx), r(b.vy), b.fire, r(b.spin * 1000), b.fireTeam],
         p: this.players.map(p => [r(p.x), r(p.y), r(p.vx), r(p.vy), r(p.r), p.kickReady ? 1 : 0, r(p.charge), p.cd, p.cdMax,
-          p.rocket, p.curve, p.magnet, p.giant, p.dash, p.stun, Math.round(p.stamina * 100) / 100, (p.sprinting ? 1 : 0) | (p.exhausted ? 2 : 0), p.ability, p.next, p.slow]),
+          p.rocket, p.curve, p.magnet, p.giant, p.dash, p.stun, Math.round(p.stamina * 100) / 100, (p.sprinting ? 1 : 0) | (p.exhausted ? 2 : 0), p.ability, p.next, p.slow,
+          p.kickHeld ? 1 : 0, p.abHeld ? 1 : 0, p.kickBuf, p.stDelay]),
         sh: this.shields.map(s => [s.team, Math.round(s.x), Math.round(s.y), s.r, s.t]),
         st: [this.stats.kicks, this.stats.power, this.stats.poss, this.stats.abil],
       };
@@ -507,6 +508,8 @@
         [p.charge, p.cd, p.cdMax, p.rocket, p.curve, p.magnet, p.giant, p.dash, p.stun, p.stamina] = a.slice(6);
         p.sprinting = !!(a[16] & 1); p.exhausted = !!(a[16] & 2);
         p.ability = a[17]; p.next = a[18]; p.slow = a[19];
+        // misafirdeki tahmin bu durumdan ileri sardığı için tuş geçmişi de gerekli
+        if (a.length > 20) { p.kickHeld = !!a[20]; p.abHeld = !!a[21]; p.kickBuf = a[22]; p.stDelay = a[23]; }
       });
       this.stats = { kicks: s.st[0], power: s.st[1], poss: s.st[2], abil: s.st[3] };
       this.shields = (s.sh || []).map(a => ({ team: a[0], x: a[1], y: a[2], r: a[3], t: a[4], invMass: 0, vx: 0, vy: 0 }));
