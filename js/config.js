@@ -1,6 +1,6 @@
 // TOPARLAK — sabitler, yetenekler, renkler
 window.TP = window.TP || {};
-TP.VERSION = 'v2.0 • 18.11.2026';
+TP.VERSION = 'v2.1 • 18.11.2026';
 
 TP.C = {
   TICK: 1 / 60,
@@ -39,7 +39,7 @@ TP.C = {
   CHARGE_TIME: 55,  // tick'te tam şarj
   KICK_RECOIL: 0.35,
 
-  GOAL_PAUSE: 330,  // gol sonrası tick (tekrar dahil)
+  GOAL_PAUSE: 170,  // gol sonrası tick
   KICKOFF_FREEZE: 50,
 };
 
@@ -67,7 +67,7 @@ TP.ABILITIES = {
 };
 TP.ABILITY_KEYS = Object.keys(TP.ABILITIES);
 TP.EMOTES = ['', '😂', '🔥', '😡', '👍'];
-TP.THEMES = [{ id: 'rastgele', name: 'Rastgele' }, { id: 'gunduz', name: 'Gündüz' }, { id: 'aksam', name: 'Akşam' }, { id: 'gece', name: 'Gece' }, { id: 'kar', name: 'Karlı' }];
+TP.THEMES = [{ id: 'rastgele', name: 'Rastgele' }, { id: 'gunduz', name: 'Gündüz' }, { id: 'aksam', name: 'Akşam' }, { id: 'gece', name: 'Gece' }];
 TP.DECK_SIZE = 3;
 TP.randomDeck = function () { const k = TP.ABILITY_KEYS.slice().sort(() => Math.random() - 0.5); return k.slice(0, TP.DECK_SIZE); };
 

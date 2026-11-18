@@ -1270,7 +1270,7 @@
         for (let k = 0; k < 3; k++) { const a = this.time * 0.15 + k * TAU / 3; ctx.beginPath(); ctx.arc(0, 0, p.r + 11, a, a + 0.8); ctx.stroke(); }
       }
       if (p.giant > 0 && p.giant < 60 && Math.floor(this.time / 5) % 2) ctx.globalAlpha = 0.75;
-      if (p.fly > 0 && !mood) mood = 'stun';
+
       drawPlayerBody(ctx, p, ch, {
         look: this.look[i], blink, kickReady: p.kickReady, mood, t: this.time, sway: Math.max(-1, Math.min(1, -p.vx * 0.2)),
         feet: { phase: this.stepPhase[i], ang: va, speed: sp },

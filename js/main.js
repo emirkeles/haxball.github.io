@@ -13,7 +13,8 @@
   if (!Array.isArray(chars) || chars.length < 2) chars = [TP.defaultChar(0), TP.defaultChar(1)];
   chars = chars.map((c, i) => TP.sanitizeChar(c, i));
   const settings = Object.assign({ time: 180, goals: 5, bot: 'orta', theme: 'rastgele' }, load('tp_settings', {}));
-  const pickTheme = () => settings.theme === 'rastgele' ? ['gunduz', 'gunduz', 'aksam', 'gece', 'kar'][(Math.random() * 5) | 0] : settings.theme;
+  if (settings.theme === 'kar') settings.theme = 'rastgele';
+  const pickTheme = () => settings.theme === 'rastgele' ? ['gunduz', 'aksam', 'gece'][(Math.random() * 3) | 0] : settings.theme;
 
   const canvas = $('game');
   const R = new TP.Renderer(canvas);
@@ -186,7 +187,6 @@
       case 'whistle': A.whistle(false); centerText('BAŞLA!', 650, true); break;
       case 'goal': {
         A.goal(); slowT = 0.6; goalBanner(e);
-        scheduleReplay();
         const k = Math.round(e.s * 10.8);
         const line = e.own ? pick(LINES.own) : k > 115 ? pick(LINES.goalFast) : pick(LINES.goal);
         spiker(fmtLine(line, { n: nm(e.team), o: nm(1 - e.team), k }), 3500, true);
@@ -845,10 +845,7 @@
       if (smooth) nudge(1);
       if (sim) R.draw(sim, paused ? 0 : dt * 60 * ts, ext);
       if (smooth) nudge(-1);
-      if (sim && mode !== 'attract') {
-        recBuf.push(snapFrame(sim));
-        while (recBuf.length && recBuf[0].t < now - 4000) recBuf.shift();
-      }
+
     }
     updateHUD();
     if (visible('menu')) drawChar($('menuPreview'), chars[0]);

@@ -240,7 +240,7 @@
     }
 
     registerHit(p, n) {
-      p.hits += n; p.hitT = 360; p.hitImm = 20;
+      p.hits += n; p.hitT = 150; p.hitImm = 20;
       if (p.hits >= 3) {
         p.hits = 0; p.hitT = 0;
         p.stun = Math.max(p.stun, 120); p.kickReady = false; p.charge = 0;
@@ -252,7 +252,7 @@
 
     tackle(p, o, d) {
       const nx = (o.x - p.x) / (d || 1), ny = (o.y - p.y) / (d || 1);
-      o.vx += nx * 6.5 * o.invMass * 2; o.vy += ny * 6.5 * o.invMass * 2; o.fly = Math.max(o.fly, 14);
+      o.vx += nx * 6.5 * o.invMass * 2; o.vy += ny * 6.5 * o.invMass * 2;
       o.kickReady = false; o.charge = 0;
       p.tackleCd = 30; p.kickReady = false; p.kickRel = 0; p.charge = 0;
       this.emit('tackle', { x: (p.x + o.x) / 2, y: (p.y + o.y) / 2, team: p.team });
@@ -434,7 +434,7 @@
               // sert şut isabeti: savur
               const dx = bvx / sp, dy = bvy / sp, k = (sp - 4) * 0.95 * (p.giant > 0 ? 0.5 : 1);
               p.vx += dx * k; p.vy += dy * k;
-              p.fly = Math.round(10 + sp * 2.2); p.flyGoal = false; p.kickReady = false;
+              if (sp > 11) { p.fly = Math.round(sp * 1.5); p.flyGoal = false; }
               if (sp > 10) this.hitstop = 4;
               this.emit('smack', { x: p.x, y: p.y, team: p.team, s: sp });
             }
