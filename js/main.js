@@ -26,7 +26,11 @@
   let recentEv = [], lastEvId = 0, lastSnapTk = -1, snapAt = 0;
   let matchChars = null, matchOpts = null, matchId = 0, matchMode = null;
   let opponentChar = null, endShown = false, hintTimer = null;
-  let guestSeq = 0, lastInputSent = 0, lastInputKey = '';
+  let guestSeq = 0;
+  // Misafir tarafı tahmin: hostIn = oda sahibinin son girdisi, pred = henüz onaylanmamış kendi girdilerimiz,
+  // off = düzeltme sıçramalarını yumuşatmak için çizime eklenen sönümlü kayma (top, oyuncu 0, oyuncu 1)
+  let hostIn = TP.NO_INPUT, pred = [], pendingSnap = null;
+  const off = [0, 0, 0, 0, 0, 0];
   let onlineDecks = [null, null];
   let netPaused = false;
   const mouse = { x: 0, y: 0 };
@@ -66,6 +70,7 @@
     sim = new TP.Sim({ chars: cs, timeLimit: opts.time, scoreLimit: opts.goals, decks });
     bots = m === 'bot' ? [null, new TP.Bot(settings.bot)] : [];
     lastSnapTk = -1; lastEvId = 0; recentEv = [];
+    hostIn = TP.NO_INPUT; pred = []; pendingSnap = null; snapAt = 0; off.fill(0);
     R.setTeams(cs); R.reset();
     for (const s of SCREENS) $(s).classList.add('hidden');
     $('hud').classList.remove('hidden');
@@ -102,14 +107,13 @@
     if (mode === 'attract') inputs = [bots[0].think(sim, 0), bots[1].think(sim, 1)];
     else if (mode === 'bot') inputs = [I.read('solo', 0), bots[1].think(sim, 1)];
     else if (mode === 'local') inputs = [I.read('p1', 0), I.read('p2', 1)];
-    else if (mode === 'host') inputs = [I.read('solo', 0), remoteInput];
+    else if (mode === 'host') inputs = [hostIn = I.read('solo', 0), remoteInput];
     sim.step(inputs);
     const evs = sim.events; sim.events = [];
     for (const e of evs) { e.tk = sim.tick; handleEvent(e, mode === 'attract'); }
     if (mode === 'host' && net) {
       if (evs.length) recentEv.push(...evs);
       if (recentEv.length) recentEv = recentEv.filter(e => e.tk > sim.tick - 40);
-      net.send({ t: 's', m: matchId, s: sim.snapshot(), ev: recentEv }, true);
     }
     if (mode === 'attract' && (sim.score[0] + sim.score[1] >= 7 || sim.tick > 60 * 150)) startAttract();
   }
@@ -682,19 +686,54 @@
         if (mode !== 'guest' || m.m !== matchId) return;
         if (m.s.tk <= lastSnapTk) return;
         lastSnapTk = m.s.tk; snapAt = performance.now();
-        sim.applySnapshot(m.s);
+        pendingSnap = m; // bir karede birden fazla gelirse yalnız sonuncusu uygulanır
         for (const e of m.ev) if (e.id > lastEvId) { lastEvId = e.id; handleEvent(e, false); }
         break;
     }
   }
 
-  function sendGuestInput(now) {
+  // ---------- misafir: tahmin + düzeltme ----------
+  // Misafir simülasyonu kendi tarafında da 60 Hz çalıştırır, böylece paketler düzensiz gelse de hareket akar
+  // ve kendi oyuncusu tuşa anında tepki verir. Oda sahibinin görüntüsü gelince o duruma dönülür, oda sahibinin
+  // henüz işlemediği kendi girdilerimiz yeniden oynatılır.
+  function guestStep(live) {
     const inp = I.read('solo', 0);
-    const key = `${inp.x},${inp.y},${inp.kick ? 1 : 0},${inp.ab ? 1 : 0},${inp.sp ? 1 : 0}`;
-    if (key !== lastInputKey || now - lastInputSent > 33) {
-      lastInputKey = key; lastInputSent = now;
-      net.send({ t: 'i', q: ++guestSeq, x: inp.x, y: inp.y, k: inp.kick ? 1 : 0, a: inp.ab ? 1 : 0, p: inp.sp ? 1 : 0 }, true);
+    const q = ++guestSeq;
+    net.send({ t: 'i', q, x: inp.x, y: inp.y, k: inp.kick ? 1 : 0, a: inp.ab ? 1 : 0, p: inp.sp ? 1 : 0 }, true);
+    pred.push({ q, inp });
+    if (pred.length > 120) pred.shift();
+    if (live) { sim.step([hostIn, inp]); sim.events = []; }
+  }
+
+  function reconcile(m) {
+    const b = sim.ball, P = sim.players;
+    const before = [b.x, b.y, P[0].x, P[0].y, P[1].x, P[1].y];
+    sim.applySnapshot(m.s);
+    if (m.hi) hostIn = { x: +m.hi[0] || 0, y: +m.hi[1] || 0, kick: !!m.hi[2], ab: !!m.hi[3], sp: !!m.hi[4] };
+    if (m.a != null) while (pred.length && pred[0].q <= m.a) pred.shift();
+    // oda sahibi takılıp girdileri biriktirdiysek gereğinden fazla ileri sarma
+    const lead = Math.min(pred.length, Math.ceil(net.rtt / (C.TICK * 1000)) + 6);
+    for (let i = pred.length - lead; i < pred.length; i++) sim.step([hostIn, pred[i].inp]);
+    sim.events = [];
+    const after = [b.x, b.y, P[0].x, P[0].y, P[1].x, P[1].y];
+    for (let i = 0; i < 6; i += 2) {
+      const dx = before[i] - after[i] + off[i], dy = before[i + 1] - after[i + 1] + off[i + 1];
+      // büyük fark (gol sonrası santra, ışınlanma) yumuşatılmaz
+      if (Math.hypot(dx, dy) > 80) { off[i] = 0; off[i + 1] = 0; } else { off[i] = dx; off[i + 1] = dy; }
     }
+  }
+
+  function nudge(s) {
+    const b = sim.ball, P = sim.players;
+    b.x += off[0] * s; b.y += off[1] * s;
+    P[0].x += off[2] * s; P[0].y += off[3] * s;
+    P[1].x += off[4] * s; P[1].y += off[5] * s;
+  }
+
+  function sendSnap() {
+    const h = hostIn;
+    net.send({ t: 's', m: matchId, s: sim.snapshot(), ev: recentEv, a: remoteQ,
+      hi: [h.x, h.y, h.kick ? 1 : 0, h.ab ? 1 : 0, h.sp ? 1 : 0] }, true);
   }
 
   // ---------- döngü ----------
@@ -704,8 +743,17 @@
     let ts = 1;
     if (slowT > 0) { slowT -= dt; ts = 0.3; }
     if (mode === 'guest') {
-      if (net) sendGuestInput(now);
-      return { dt, ts, ext: Math.min(5, (now - snapAt) / 16.67 * ts) };
+      if (!sim || !net) return { dt, ts, ext: 0 };
+      if (pendingSnap) { reconcile(pendingSnap); pendingSnap = null; }
+      // görüntü gelmiyorsa tahmini durdur (oda sahibi beklemede), girdi yollamaya devam et
+      const live = now - snapAt < 250;
+      acc += dt * ts;
+      let n = 0;
+      while (acc >= C.TICK && n < maxSteps) { acc -= C.TICK; guestStep(live); n++; }
+      if (n >= maxSteps) acc = 0;
+      const k = Math.pow(0.85, dt * 60);
+      for (let i = 0; i < 6; i++) off[i] *= k;
+      return { dt, ts, ext: live ? acc / C.TICK : 0 };
     }
     // Rakibin girdisi 0.3 sn gelmezse dünyayı dondur (boş kaleye gol olmasın)
     let stalled = false;
@@ -721,14 +769,20 @@
       let n = 0;
       while (acc >= C.TICK && n < maxSteps) { acc -= C.TICK; hostStep(); n++; }
       if (n >= maxSteps) acc = 0;
+      // her tick yerine karede bir görüntü: aynı karede art arda paket yollanmaz
+      if (n && mode === 'host' && net) sendSnap();
     }
-    return { dt, ts, ext: 0 };
+    // tick'ler arasında kalan süre kadar ileri çiz (ekran yenilemesi tick'le hizalı olmasa da akar)
+    return { dt, ts, ext: sim ? acc / C.TICK : 0 };
   }
 
   function frame(now) {
     requestAnimationFrame(frame);
     const { dt, ts, ext } = pump(now, 8);
+    const smooth = mode === 'guest' && sim;
+    if (smooth) nudge(1);
     if (sim) R.draw(sim, paused ? 0 : dt * 60 * ts, ext);
+    if (smooth) nudge(-1);
     updateHUD();
     if (visible('menu')) drawChar($('menuPreview'), chars[0]);
     if (visible('creator')) drawChar($('bigPreview'), chars[editIdx], { ring: (performance.now() % 2000) < 400 });
