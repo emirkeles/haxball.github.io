@@ -197,27 +197,42 @@
 
   class LanSession {
     constructor(role) {
-      this.role = role; this.via = 'lan'; this.handlers = {}; this.connected = false; this.closed = false; this.rtt = 0; this.code = null;
+      this.role = role; this.via = 'lan'; this.handlers = {}; this.connected = false; this.closed = false; this.rtt = 0;
+      this.code = null; this.tok = null; this.reconnecting = false; this.lastMsg = 0;
     }
     on(ev, fn) { this.handlers[ev] = fn; return this; }
     fire(ev, a) { const f = this.handlers[ev]; if (f) f(a); }
     send(msg) { if (this.ws && this.ws.readyState === 1) { try { this.ws.send(JSON.stringify(msg)); } catch (e) {} } }
+
     _open(first) {
       const ws = this.ws = new WebSocket(wsURL());
-      const to = setTimeout(() => { if (ws.readyState !== 1) this.fire('error', 'Oyun sunucusuna bağlanılamadı. Sunucu açık mı?'); }, 5000);
-      ws.onopen = () => { clearTimeout(to); first(); };
-      ws.onerror = () => { if (!this.connected) this.fire('error', 'Oyun sunucusuna bağlanılamadı. Sunucu açık mı?'); };
-      ws.onclose = () => { clearInterval(this.pingTimer); if (!this.closed && this.connected) { this.connected = false; this.fire('lost'); } };
+      const to = setTimeout(() => { if (ws.readyState !== 1) { try { ws.close(); } catch (e) {} if (!this.tok) this.fire('error', 'Oyun sunucusuna bağlanılamadı. Sunucu açık mı?'); } }, 4000);
+      ws.onopen = () => { clearTimeout(to); this.lastMsg = performance.now(); first(); };
+      ws.onerror = () => {};
+      ws.onclose = () => {
+        clearTimeout(to);
+        if (this.ws !== ws || this.closed) return;
+        if (this.tok) this._reconnect();       // daha önce odadaydık: geri bağlanmayı dene
+        else this.fire('error', 'Oyun sunucusuna bağlanılamadı. Sunucu açık mı?');
+      };
       ws.onmessage = (ev) => {
+        this.lastMsg = performance.now();
         let m; try { m = JSON.parse(ev.data); } catch (e) { return; }
         switch (m.t) {
-          case '_code': this.code = m.code; this.fire('code', m.code); return;
+          case '_code': this.code = m.code; this.tok = m.tok; this._startWatch(); this.fire('code', m.code); return;
           case '_err': this.fire('error', m.msg); return;
-          case '_left': if (this.connected) { this.connected = false; this.fire('lost'); } return;
+          case '_pong': return;
+          case '_left': this._end(); return;
+          case '_gone': this._end(); return;
+          case '_paused': this.fire('paused', 'partner'); return;
+          case '_resumed':
+            if (this.reconnecting) { this.reconnecting = false; clearTimeout(this.giveUp); }
+            this.fire('resumed', m.partner); return;
           case '_joined':
+            if (m.tok) this.tok = m.tok;
+            this._startWatch();
             if (this.connected) return;
             this.connected = true; this.code = m.code;
-            this.pingTimer = setInterval(() => this.send({ t: 'ping', ts: performance.now() }), 1000);
             this.fire('connected', 'lan');
             return;
           case 'ping': this.send({ t: 'pong', ts: m.ts }); return;
@@ -226,9 +241,49 @@
         this.fire('msg', m);
       };
     }
+
+    // sunucuya düzenli nabız; 3.5 sn ses yoksa bağlantıyı yenile
+    _startWatch() {
+      if (this.watch) return;
+      this.watch = setInterval(() => {
+        if (this.closed) return;
+        this.send({ t: '_ping', ts: performance.now() });
+        if (this.connected) this.send({ t: 'ping', ts: performance.now() });
+        if (!this.reconnecting && this.ws && this.ws.readyState === 1 && performance.now() - this.lastMsg > 3500) {
+          try { this.ws.close(); } catch (e) {}
+        }
+      }, 1000);
+    }
+
+    _reconnect() {
+      if (this.closed) return;
+      if (!this.reconnecting) {
+        this.reconnecting = true;
+        this.fire('paused', 'self');
+        this.giveUp = setTimeout(() => { if (this.reconnecting) this._end(); }, 24000);
+      }
+      setTimeout(() => {
+        if (this.closed || !this.reconnecting) return;
+        this._open(() => this.send({ t: '_resume', code: this.code, tok: this.tok }));
+      }, 700);
+    }
+
+    _end() {
+      if (this.closed) return;
+      this.closed = true; this.reconnecting = false;
+      clearInterval(this.watch); clearTimeout(this.giveUp);
+      try { this.ws && this.ws.close(); } catch (e) {}
+      if (this.connected || this.tok) { this.connected = false; this.fire('lost'); }
+    }
+
     host(name) { this._open(() => this.send({ t: '_host', name })); return this; }
     join(code) { this._open(() => this.send({ t: '_join', code: String(code || '').toUpperCase() })); return this; }
-    close() { this.closed = true; clearInterval(this.pingTimer); try { this.ws && this.ws.close(); } catch (e) {} }
+    close() {
+      if (this.closed) return;
+      this.closed = true; clearInterval(this.watch); clearTimeout(this.giveUp);
+      this.send({ t: '_bye' });
+      const ws = this.ws; setTimeout(() => { try { ws && ws.close(); } catch (e) {} }, 50);
+    }
   }
 
   // Yerel ağdaki açık odaları listele

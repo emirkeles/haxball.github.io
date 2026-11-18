@@ -21,13 +21,14 @@
   // ---------- durum ----------
   let mode = 'attract';          // attract | bot | local | host | guest
   let sim = null, bots = [], net = null;
-  let remoteInput = TP.NO_INPUT, remoteQ = 0;
+  let remoteInput = TP.NO_INPUT, remoteQ = 0, lastRemoteAt = 0, stallShown = false;
   let paused = false, slowT = 0, acc = 0;
   let recentEv = [], lastEvId = 0, lastSnapTk = -1, snapAt = 0;
   let matchChars = null, matchOpts = null, matchId = 0, matchMode = null;
   let opponentChar = null, endShown = false, hintTimer = null;
   let guestSeq = 0, lastInputSent = 0, lastInputKey = '';
   let onlineDecks = [null, null];
+  let netPaused = false;
   const mouse = { x: 0, y: 0 };
   window.addEventListener('mousemove', (e) => { mouse.x = e.clientX; mouse.y = e.clientY; });
 
@@ -43,6 +44,9 @@
     clearTimeout(toast.tm); toast.tm = setTimeout(() => t.classList.add('hidden'), ms || 2200);
   }
 
+  function showNetBanner(t) { const b = $('netBanner'); b.querySelector('span').textContent = t; b.classList.remove('hidden'); }
+  function hideNetBanner() { $('netBanner').classList.add('hidden'); }
+
   // ---------- arka plan (menüde botlar oynar) ----------
   function startAttract() {
     mode = 'attract'; paused = false;
@@ -56,6 +60,7 @@
   // ---------- maç ----------
   function startMatch(m, cs, opts, decks) {
     mode = m; matchMode = m; paused = false; endShown = false; slowT = 0; acc = 0;
+    remoteInput = TP.NO_INPUT; remoteQ = 0; lastRemoteAt = performance.now() + 1500; stallShown = false;
     if (m !== 'guest') cs = TP.resolveKits(cs);
     matchChars = cs; matchOpts = opts;
     sim = new TP.Sim({ chars: cs, timeLimit: opts.time, scoreLimit: opts.goals, decks });
@@ -265,6 +270,7 @@
   }
 
   function quitToMenu() {
+    netPaused = false; hideNetBanner();
     if (net) { net.close(); net = null; }
     draft = null;
     startAttract();
@@ -554,11 +560,22 @@
       A.uiOk();
     });
     n.on('lost', () => {
-      toast('Bağlantı koptu 😕', 3500);
+      netPaused = false; hideNetBanner();
+      toast('Bağlantı kurtarılamadı, menüye dönüldü 😕', 4000);
       net = null; n.close(); draft = null;
       startAttract(); show('menu');
     });
     n.on('msg', onNetMsg);
+    n.on('paused', (who) => {
+      netPaused = true;
+      showNetBanner(who === 'self' ? 'Bağlantı koptu, yeniden bağlanılıyor…' : 'Rakibin bağlantısı koptu, bekleniyor…');
+    });
+    n.on('resumed', (partnerHere) => {
+      if (partnerHere === false) { showNetBanner('Rakibin bağlantısı koptu, bekleniyor…'); return; }
+      netPaused = false; hideNetBanner();
+      if (mode === 'host' || mode === 'guest') centerText('DEVAM!', 700, true);
+      if (mode === 'host' && sim && sim.phase !== 'over') sim.freeze = Math.max(sim.freeze, 45);
+    });
   }
   function doHost() {
     A.init();
@@ -657,7 +674,9 @@
         break;
       case 'i':
         if (net.role !== 'host') return;
-        if (m.q > remoteQ || m.q < remoteQ - 1000) { remoteQ = m.q; remoteInput = { x: +m.x || 0, y: +m.y || 0, kick: !!m.k, ab: !!m.a, sp: !!m.p }; }
+        lastRemoteAt = performance.now();
+        // yerel ağda (TCP) mesajlar sıralı gelir: her girdiyi kabul et. P2P'de eskileri ele.
+        if (net.via === 'lan' || m.q > remoteQ || m.q < remoteQ - 30) { remoteQ = m.q; remoteInput = { x: +m.x || 0, y: +m.y || 0, kick: !!m.k, ab: !!m.a, sp: !!m.p }; }
         break;
       case 's':
         if (mode !== 'guest' || m.m !== matchId) return;
@@ -688,7 +707,16 @@
       if (net) sendGuestInput(now);
       return { dt, ts, ext: Math.min(5, (now - snapAt) / 16.67 * ts) };
     }
-    if (sim && !paused) {
+    // Rakibin girdisi 0.3 sn gelmezse dünyayı dondur (boş kaleye gol olmasın)
+    let stalled = false;
+    if (mode === 'host' && net && sim && sim.phase !== 'over') {
+      const gap = now - lastRemoteAt;
+      stalled = gap > 300;
+      if (gap > 1200 && !stallShown && !netPaused) { stallShown = true; showNetBanner('Rakibin bağlantısı takıldı, bekleniyor…'); }
+      if (!stalled && stallShown) { stallShown = false; if (!netPaused) hideNetBanner(); }
+    }
+    if (stalled) acc = 0;
+    if (sim && !paused && !stalled && !(netPaused && mode === 'host')) {
       acc += dt * ts;
       let n = 0;
       while (acc >= C.TICK && n < maxSteps) { acc -= C.TICK; hostStep(); n++; }
