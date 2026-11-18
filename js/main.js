@@ -139,10 +139,10 @@
     power: ['{n} sert vurdu!', 'Bomba gibi şut {n}\'den!', '{n} topu patlattı!'],
     burn: ['{v} alevlerin içinde kaldı!', 'Roket {v}\'yi yerle bir etti!'],
     tired: ['{n} nefes nefese kaldı!', '{n} çok yoruldu, biraz dinlenmeli.'],
-    ab: { dev: '{n} devleşti!', sok: '{n} şok dalgasıyla ortalığı dağıttı!', atilma: '{n} rüzgar gibi atıldı!', roket: '{n} roket şutu hazırlıyor!', falso: '{n} falsolu bir şey deneyecek…',
-      miknatis: '{n} topu ayağına çekiyor!', buz: '{n} rakibini dondurdu!', isinlan: '{n} topun arkasına ışınlandı!', kalkan: '{n} kalesinin önüne duvar ördü!', eldiven: '{n} eldivenlerini giydi!',
-      hayalet: '{n} hayalete dönüştü!', turbo: '{n} turboyu açtı!', kucult: '{n} rakibini karıncaya çevirdi!', ters: '{n} rakibinin beynini ters çevirdi!', bomba: '{n} topa bomba bağladı!',
-      mayin: '{n} mayın döşüyor…', ruzgar: '{n} fırtına çıkardı!', lastik: 'Top lastik gibi! {n} işi şansa bıraktı.', cagir: '{n} topu sihirle çağırdı!', sis: 'Top kayboldu! {n} sis bıraktı!' },
+    ab: { sok: '{n} şok dalgasıyla ortalığı dağıttı!', roket: '{n} roket şutu hazırlıyor!', falso: '{n} falsolu bir şey deneyecek…',
+      buz: '{n} rakibini dondurdu!', isinlan: '{n} topun arkasına ışınlandı!', kalkan: '{n} kalesinin önüne duvar ördü!', eldiven: '{n} eldivenlerini giydi!',
+      turbo: '{n} turboyu açtı!', ters: '{n} rakibinin beynini ters çevirdi!', bomba: '{n} topa bomba bağladı!',
+      mayin: '{n} mayın döşüyor…', ruzgar: '{n} fırtına çıkardı!', cagir: '{n} topu sihirle çağırdı!', sis: 'Top kayboldu! {n} sis bıraktı!' },
     overtime: ['Süre bitti, eşitlik! Altın gol zamanı!'],
     dizzy: ['{n} yıldızları sayıyor!', '{n} sersemledi, kafası dönüyor!', 'Üç darbe, {n} yere serildi!'],
     burn2: ['{v} füzeyle uzaya gönderildi!', 'Roket {v}\'yi tribünlere uçurdu!', '{v} havada takla atıyor!'],
@@ -263,7 +263,7 @@
           el.title = A_.name;
         });
       }
-      const armed = { roket: p.rocket > 0, falso: p.curve > 0, miknatis: p.magnet > 0, dev: p.giant > 0, hayalet: p.ghost > 0, turbo: p.turbo > 0, eldiven: p.glove > 0 };
+      const armed = { roket: p.rocket > 0, falso: p.curve > 0, turbo: p.turbo > 0, eldiven: p.glove > 0 };
       slots.forEach((el, k) => {
         const a = p.deck && p.deck[k];
         if (!a) return;
@@ -518,10 +518,10 @@
   };
 
   // ---------- KART SEÇİMİ ----------
-  const CARD_COLORS = { roket: ['#ff7b00', '#7a1e00'], atilma: ['#9aa5b1', '#2b3748'], falso: ['#9b5de5', '#3c1a6e'], sok: ['#f8f9fa', '#5c677d'], miknatis: ['#3a86ff', '#0b3d91'],
-    dev: ['#8ac926', '#2d5016'], buz: ['#a2d2ff', '#1d4e89'], isinlan: ['#e0c3ff', '#5a189a'], kalkan: ['#ffd23f', '#7a5c00'], eldiven: ['#ffe08a', '#8a5a00'],
-    hayalet: ['#dfe7fd', '#4a4e69'], turbo: ['#ffd23f', '#b5179e'], kucult: ['#c9ada7', '#5e548e'], ters: ['#ff5d8f', '#590d22'], bomba: ['#555', '#111'],
-    mayin: ['#e85d04', '#370617'], ruzgar: ['#cfe8ff', '#277da1'], lastik: ['#ff7b00', '#7a3200'], cagir: ['#c77dff', '#240046'], sis: ['#adb5bd', '#343a40'] };
+  const CARD_COLORS = { roket: ['#ff7b00', '#7a1e00'], falso: ['#9b5de5', '#3c1a6e'], sok: ['#f8f9fa', '#5c677d'],
+    buz: ['#a2d2ff', '#1d4e89'], isinlan: ['#e0c3ff', '#5a189a'], kalkan: ['#ffd23f', '#7a5c00'], eldiven: ['#ffe08a', '#8a5a00'],
+    turbo: ['#ffd23f', '#b5179e'], ters: ['#ff5d8f', '#590d22'], bomba: ['#555', '#111'],
+    mayin: ['#e85d04', '#370617'], ruzgar: ['#cfe8ff', '#277da1'], cagir: ['#c77dff', '#240046'], sis: ['#adb5bd', '#343a40'] };
   let draft = null;
   // players: [{idx, ch, slot}], online: true ise süre sınırı ve bekleme
   function openDraft(players, onDone, online) {

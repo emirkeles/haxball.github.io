@@ -698,12 +698,6 @@
               fx.ring(e.x, e.y, 16, 120, 32, col, 6);
               fx.burst(e.x, e.y, 30, { speed: 6, color: ['#fff', col], life: 26, size: 2.5, drag: 0.9 });
               this.shakeBy(14); this.flash = 0.2; break;
-            case 'atilma':
-              fx.burst(e.x, e.y, 14, { speed: 3, color: ['#fff', '#cfe8a9'], life: 20, size: 2.5 }); this.shakeBy(3); break;
-            case 'dev':
-              fx.ring(e.x, e.y, 20, 70, 24, col, 7); this.shakeBy(8);
-              fx.burst(e.x, e.y, 18, { speed: 4, color: ['#fff', col], life: 26, size: 3 }); break;
-            case 'miknatis': fx.ring(e.x, e.y, 170, 18, 30, '#7fd1ff', 4); break;
             case 'buz':
               if (e.hit === 0) { // ıskaladı: menzili göster
                 fx.ring(e.x, e.y, 20, C.BUZ_RANGE, 22, '#bfe9ff', 3);
