@@ -1,4 +1,4 @@
-# Toparlak Lig ⚽ (v2.2)
+# Toparlak Lig ⚽ (v2.4)
 
 Yuvarlak karakterlerle sert, arcade 1v1 tarayıcı futbolu: roket şutlar rakibi uçurur, bombalar patlar, 3 darbede rakip sersemler.
 
@@ -18,7 +18,7 @@ Yuvarlak karakterlerle sert, arcade 1v1 tarayıcı futbolu: roket şutlar rakibi
 Bağlantı koparsa oyun 25 saniye boyunca otomatik yeniden bağlanır. Rakibin girdisi takılırsa oyun ikiniz için de donar, yani boş kaleye gol atılamaz.
 
 ## Yetenek kartları
-Maç başında 19 karttan 3'ünü seçersin. Maçta bu kartlar rastgele sırayla gelir: birini kullanınca sıradaki çıkar.
+Maç başında 19 karttan 3'ünü seçersin. Maçta üçü de elinde: **1-2-3** tuşlarıyla her birini ayrı kullanırsın, her birinin kendi bekleme süresi var. Aynı anda basıp **kombola** (ör. Roket + Falso = falsolu roket).
 
 🚀 Roket Şut · 💨 Atılma · 🌀 Falso · 💥 Şok Dalgası · 🧲 Mıknatıs · 🦍 Dev Mod · 🧊 Buz · ✨ Işınlanma · 🛡️ Kale Duvarı · 👻 Hayalet · ⚡ Turbo · 🐜 Küçült · 🔄 Ters Kontrol · 💣 Bomba Top · 🧨 Mayın · 🌪️ Rüzgar · 🏀 Lastik Top · 🪄 Topu Çağır · 🌫️ Sis
 
@@ -31,7 +31,7 @@ Maç başında 19 karttan 3'ünü seçersin. Maçta bu kartlar rastgele sırayla
 - **Langırt haritası:** ortadaki tamponlar topu ve oyuncuları fırlatır.
 - **Kaos olayları:** buzlu zemin, dev top, meteor yağmuru, herkese turbo (menüden kapatılabilir).
 - **Seri skoru:** aynı rakiple rövanşlarda seri tutulur.
-- **Emoji:** 1-4 (P2: 7-0) 😂🔥😡👍
+- **Emoji:** 5-8 (P2: 9 0 * -) 😂🔥😡👍
 - **Stadyum:** gündüz, akşam, gece ya da rastgele.
 
 ## Tuşlar (menüdeki ⌨️ Tuşlar ekranından değiştirilebilir)

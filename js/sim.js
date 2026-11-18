@@ -44,12 +44,12 @@
     const p = {
       team, ch, deck, queue: [], ability: null, next: null, slow: 0,
       x: 0, y: 0, vx: 0, vy: 0, r: C.PLAYER_R, invMass: C.PLAYER_INVMASS,
-      kickReady: false, kickHeld: false, charge: 0, abHeld: false,
-      cd: 0, cdMax: 1, rocket: 0, curve: 0, magnet: 0, giant: 0, dash: 0, stun: 0,
+      kickReady: false, kickHeld: false, charge: 0, abHeld: false, abMask: 0,
+      cd: [0, 0, 0], cdMax: [1, 1, 1], rocket: 0, curve: 0, magnet: 0, giant: 0, dash: 0, stun: 0,
       ix: 0, iy: 0, stamina: 1, stDelay: 0, exhausted: false, sprinting: false, kickBuf: 0, kickRel: 0,
       ghost: 0, turbo: 0, mini: 0, inv: 0, hits: 0, hitT: 0, hitImm: 0, tackleCd: 0, lastEmo: 0, emoCd: 0, fly: 0, flyGoal: false, fullT: 0, perfect: false,
     };
-    drawCard(p);
+    p.ability = deck[0];
     return p;
   }
 
@@ -153,12 +153,12 @@
       this.emit('kickoff', { team: this.kickoffTeam, first: !!first });
     }
 
-    useAbility(p, ax, ay) {
-      const used = p.ability;
+    useAbility(p, ax, ay, k) {
+      const used = p.deck[k];
       const A = TP.ABILITIES[used];
       const opp = this.players[1 - p.team];
       const b = this.ball;
-      p.cd = p.cdMax = Math.round(A.cd * 60);
+      p.cd[k] = p.cdMax[k] = Math.round(A.cd * 60);
       this.stats.abil[p.team]++;
       const extra = {};
       switch (used) {
@@ -240,7 +240,6 @@
           break;
         }
       }
-      drawCard(p);
       this.emit('ab', Object.assign({ a: used, team: p.team, x: p.x, y: p.y }, extra));
     }
 
@@ -257,7 +256,6 @@
 
     tackle(p, o, d) {
       const nx = (o.x - p.x) / (d || 1), ny = (o.y - p.y) / (d || 1);
-      o.vx += nx * 6.5 * o.invMass * 2; o.vy += ny * 6.5 * o.invMass * 2;
       o.kickReady = false; o.charge = 0;
       p.tackleCd = 30; p.kickReady = false; p.kickRel = 0; p.charge = 0;
       this.emit('tackle', { x: (p.x + o.x) / 2, y: (p.y + o.y) / 2, team: p.team });
@@ -366,10 +364,13 @@
         } else if (p.stDelay > 0) p.stDelay--;
         else p.stamina = Math.min(1, p.stamina + C.STAMINA_REGEN * (p.exhausted ? 1.25 : 1));
         p.vx += ax * acc; p.vy += ay * acc;
-        if (inp.ab && !p.abHeld && p.cd <= 0 && this.phase !== 'goal' && this.phase !== 'over') this.useAbility(p, ax, ay);
-        p.abHeld = !!inp.ab;
+        // 1-2-3: her slot ayrı tuş, ayrı bekleme süresi; aynı anda basılırsa hepsi birlikte çalışır (kombo)
+        const abm = inp.ab === true ? 1 : (inp.ab | 0);
+        if (this.phase !== 'goal' && this.phase !== 'over')
+          for (let k = 0; k < 3; k++) if ((abm & (1 << k)) && !(p.abMask & (1 << k)) && p.deck[k] && p.cd[k] <= 0) this.useAbility(p, ax, ay, k);
+        p.abMask = abm; p.abHeld = !!abm;
 
-        if (p.cd > 0) p.cd--;
+        for (let k = 0; k < 3; k++) if (p.cd[k] > 0) p.cd[k]--;
         if (p.rocket > 0) p.rocket--;
         if (p.curve > 0) p.curve--;
         if (p.dash > 0) p.dash--;
@@ -617,7 +618,7 @@
         for (const pk of this.pickups) {
           pk.t--;
           for (const p of P) if (pk.t > 0 && Math.hypot(p.x - pk.x, p.y - pk.y) < p.r + 13) {
-            p.cd = 0; p.stamina = 1; p.exhausted = false; pk.t = 0;
+            p.cd = [0, 0, 0]; p.stamina = 1; p.exhausted = false; pk.t = 0;
             this.emit('pickup', { x: pk.x, y: pk.y, team: p.team });
           }
         }
@@ -697,7 +698,7 @@
         sc: this.score, ko: this.kickoffTeam, lt: this.lastTouch, w: this.winner, lg: this.lastGoal,
         b: [r(b.x), r(b.y), r(b.vx), r(b.vy), b.fire, r(b.spin * 1000), b.fireTeam, b.bomb, b.bombTeam, r(b.r)],
         p: this.players.map(p => [r(p.x), r(p.y), r(p.vx), r(p.vy), r(p.r), p.kickReady ? 1 : 0, r(p.charge), p.cd, p.cdMax,
-          p.rocket, p.curve, p.magnet, p.giant, p.dash, p.stun, Math.round(p.stamina * 100) / 100, (p.sprinting ? 1 : 0) | (p.exhausted ? 2 : 0), p.ability, p.next, p.slow,
+          p.rocket, p.curve, p.magnet, p.giant, p.dash, p.stun, Math.round(p.stamina * 100) / 100, (p.sprinting ? 1 : 0) | (p.exhausted ? 2 : 0), p.deck, p.abMask, p.slow,
           p.kickHeld ? 1 : 0, p.abHeld ? 1 : 0, p.kickRel, p.stDelay, p.ghost, p.turbo, p.mini, p.inv, p.hits, p.hitT, p.tackleCd, p.hitImm, p.fly, p.fullT, p.perfect ? 1 : 0]),
         cx: this.chaos ? [this.chaos.k, this.chaos.t] : 0, mt: this.meteors.map(m => [m.x, m.y, m.t]), ct: this.chaosTimer,
         hs: this.hitstop,
@@ -719,7 +720,7 @@
         [p.x, p.y, p.vx, p.vy, p.r] = a; p.kickReady = !!a[5];
         [p.charge, p.cd, p.cdMax, p.rocket, p.curve, p.magnet, p.giant, p.dash, p.stun, p.stamina] = a.slice(6);
         p.sprinting = !!(a[16] & 1); p.exhausted = !!(a[16] & 2);
-        p.ability = a[17]; p.next = a[18]; p.slow = a[19];
+        p.deck = a[17]; p.abMask = a[18]; p.slow = a[19]; p.ability = p.deck[0];
         // misafirdeki tahmin bu durumdan ileri sardığı için tuş geçmişi de gerekli
         if (a.length > 20) { p.kickHeld = !!a[20]; p.abHeld = !!a[21]; p.kickRel = a[22]; p.stDelay = a[23]; }
         if (a.length > 24) [p.ghost, p.turbo, p.mini, p.inv, p.hits, p.hitT, p.tackleCd, p.hitImm, p.fly, p.fullT] = a.slice(24, 34);

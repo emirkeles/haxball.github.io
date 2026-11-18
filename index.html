@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;600;700;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=13">
+<link rel="stylesheet" href="css/style.css?v=14">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='44' fill='%23e63946' stroke='%23111' stroke-width='8'/><circle cx='38' cy='44' r='9' fill='white'/><circle cx='62' cy='44' r='9' fill='white'/><circle cx='40' cy='45' r='4'/><circle cx='64' cy='45' r='4'/></svg>">
 </head>
 <body>
@@ -26,8 +26,8 @@
     <div class="sb-team sb-right"><span class="sb-name" id="sbName1">—</span><span class="sb-badge" id="sbBadge1"></span></div>
   </div>
   <div id="ping" class="hidden"></div>
-  <div class="abcard" id="ab0"><div class="ab-icon"></div><div class="ab-info"><div class="ab-name"></div><div class="ab-key"></div><div class="ab-stam"><i></i></div></div><div class="ab-next" title="Sıradaki kart"></div><div class="ab-fill"></div></div>
-  <div class="abcard right" id="ab1"><div class="ab-icon"></div><div class="ab-info"><div class="ab-name"></div><div class="ab-key"></div><div class="ab-stam"><i></i></div></div><div class="ab-next" title="Sıradaki kart"></div><div class="ab-fill"></div></div>
+  <div class="abcard" id="ab0"><div class="slots"><div class="slot"><div class="s-icon"></div><div class="s-key"></div><div class="s-cd"></div></div><div class="slot"><div class="s-icon"></div><div class="s-key"></div><div class="s-cd"></div></div><div class="slot"><div class="s-icon"></div><div class="s-key"></div><div class="s-cd"></div></div></div><div class="ab-stam"><i></i></div></div>
+  <div class="abcard right" id="ab1"><div class="slots"><div class="slot"><div class="s-icon"></div><div class="s-key"></div><div class="s-cd"></div></div><div class="slot"><div class="s-icon"></div><div class="s-key"></div><div class="s-cd"></div></div><div class="slot"><div class="s-icon"></div><div class="s-key"></div><div class="s-cd"></div></div></div><div class="ab-stam"><i></i></div></div>
   <div id="spiker"><span class="mic">🎙️</span><span id="spikerText"></span></div>
   <div id="controlsHint"></div>
   <div id="centerText"></div>
@@ -171,11 +171,11 @@
           <li><b>Mükemmel şut:</b> Halka dolup <span style="color:#7fd1ff">maviye döndüğü an</span> bırakırsan şut çok daha sert gider.</li>
           <li><b>Kaos:</b> Ara ara buzlu zemin, dev top, meteor yağmuru ya da herkese turbo gelir (menüden kapatılabilir).</li>
           <li><b>Langırt haritası:</b> Ortadaki tamponlar topu ve oyuncuları fırlatır.</li>
-          <li><b>Emoji:</b> 1-4 tuşları (P2: 7-0) 😂🔥😡👍</li>
+          <li><b>Emoji:</b> 5-6-7-8 tuşları (P2: 9 0 * -) 😂🔥😡👍</li>
           <li><b>Enerji küresi:</b> Sahaya düşen ⚡ küreyi kap, yeteneğin ve koşu barın anında dolar.</li>
           <li><b>Koşu:</b> Shift ile sprint at. Alttaki bar biter, biterse bir süre koşamazsın.</li>
           <li><b>Nişan:</b> Şut anında hangi yöne basıyorsan top o yöne kayar.</li>
-          <li><b>Yetenek kartları:</b> Maç başında 3 kart seçersin; maçta rastgele sırayla gelirler. Kullanınca bekleme süresi başlar ve sıradaki kart gelir.</li>
+          <li><b>Yetenek kartları:</b> Maç başında 3 kart seçersin. Maçta 1-2-3 tuşlarıyla her birini ayrı kullanırsın, her birinin kendi bekleme süresi var. Aynı anda basıp kombolayabilirsin.</li>
           <li>Süre bitince eşitlik varsa <b>altın gol</b>.</li>
         </ul>
       </div>
@@ -199,7 +199,7 @@
       <div>
         <div class="draft-who" id="draftWho">Oyuncu 1</div>
         <h2>Yetenek kartlarını seç</h2>
-        <div class="muted">3 kart seç. Maçta bu kartlar <b>rastgele sırayla</b> eline gelecek: birini kullanınca sıradaki çıkar.</div>
+        <div class="muted">3 kart seç. Maçta üçü de elinde: <b>1 - 2 - 3</b> tuşlarıyla istediğini kullan, aynı anda basıp <b>kombola</b> (ör. Roket + Falso = falsolu roket). Her kartın kendi bekleme süresi var.</div>
       </div>
       <div class="draft-timer hidden" id="draftTimer">30</div>
     </div>
@@ -258,13 +258,13 @@
 
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script src="https://unpkg.com/mqtt@5.10.1/dist/mqtt.min.js"></script>
-<script src="js/config.js?v=13"></script>
-<script src="js/sim.js?v=13"></script>
-<script src="js/bot.js?v=13"></script>
-<script src="js/audio.js?v=13"></script>
-<script src="js/input.js?v=13"></script>
-<script src="js/render.js?v=13"></script>
-<script src="js/net.js?v=13"></script>
-<script src="js/main.js?v=13"></script>
+<script src="js/config.js?v=14"></script>
+<script src="js/sim.js?v=14"></script>
+<script src="js/bot.js?v=14"></script>
+<script src="js/audio.js?v=14"></script>
+<script src="js/input.js?v=14"></script>
+<script src="js/render.js?v=14"></script>
+<script src="js/net.js?v=14"></script>
+<script src="js/main.js?v=14"></script>
 </body>
 </html>

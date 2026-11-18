@@ -6,7 +6,7 @@
       this.level = level || 'orta';
       const L = { kolay: { speed: 0.62, react: 14, aim: 0.55, ab: 0.004 }, orta: { speed: 0.85, react: 7, aim: 0.75, ab: 0.012 }, zor: { speed: 1, react: 2, aim: 0.88, ab: 0.03 } };
       this.cfg = L[this.level] || L.orta;
-      this.out = { x: 0, y: 0, kick: false, ab: false, sp: false };
+      this.out = { x: 0, y: 0, kick: false, ab: 0, sp: false };
       this.t = 0; this.kickHold = 0; this.mode = 'atk'; this.holding = false; this.held = 0; this.holdTarget = 0; this.tackling = false;
       this.wobble = Math.random() * 10;
     }
@@ -85,29 +85,32 @@
         this.holding = true; this.held = 0; this.holdTarget = 0; this.tackling = true; this.out.kick = true; // rakibe vur
       } else this.out.kick = false;
 
-      // Yetenek
-      this.out.ab = false;
-      if (me.cd <= 0 && Math.random() < cfg.ab * cfg.react) {
-        const a = me.ability;
-        const dOpp = Math.hypot(opp.x - me.x, opp.y - me.y);
-        if (a === 'roket' && close && align > 0.6 && distGoal < 520) this.out.ab = true;
-        else if (a === 'falso' && close && distGoal < 450) this.out.ab = true;
-        else if (a === 'atilma' && dB > 140 && !wrongSide) this.out.ab = true;
-        else if (a === 'sok' && dOpp < 90 && Math.hypot(opp.x - b.x, opp.y - b.y) < 60) this.out.ab = true;
-        else if (a === 'miknatis' && dB < 150 && dB > 50 && dO < dB) this.out.ab = true;
-        else if (a === 'dev' && (defend || dOpp < 70)) this.out.ab = true;
-        else if (a === 'buz' && dO < dB && dO < 80) this.out.ab = true;
-        else if (a === 'isinlan' && (wrongSide || dB > 220) && !defend) this.out.ab = true;
-        else if (a === 'kalkan' && Math.abs(ownX - b.x) < 200 && b.vx * side > 1.5) this.out.ab = true;
-        else if (a === 'hayalet' && dOpp < 60 && dB < 120) this.out.ab = true;
-        else if (a === 'turbo' && dB > 160) this.out.ab = true;
-        else if ((a === 'kucult' || a === 'ters') && dOpp < 160 && dO < dB + 40) this.out.ab = true;
-        else if (a === 'bomba' && Math.hypot(opp.x - b.x, opp.y - b.y) < 70 && dB > 60) this.out.ab = true;
-        else if (a === 'mayin' && (defend || Math.abs(ownX - me.x) < 220)) this.out.ab = true;
-        else if (a === 'ruzgar' && side * b.x < 0 && Math.abs(goalX - b.x) < 420) this.out.ab = true;
-        else if (a === 'lastik' && close) this.out.ab = true;
-        else if (a === 'cagir' && dB > 180 && dO < dB) this.out.ab = true;
-        else if (a === 'sis' && close && distGoal < 400) this.out.ab = true;
+      // Yetenek: 3 slot, her biri kendi bekleme süresinde; uygun olanları aynı anda kullanabilir (kombo)
+      this.out.ab = 0;
+      const dOpp = Math.hypot(opp.x - me.x, opp.y - me.y);
+      for (let k = 0; k < 3; k++) {
+        const a = me.deck && me.deck[k];
+        if (!a || me.cd[k] > 0 || Math.random() > cfg.ab * cfg.react) continue;
+        let use = false;
+        if (a === 'roket' && close && align > 0.6 && distGoal < 520) use = true;
+        else if (a === 'falso' && close && distGoal < 450) use = true;
+        else if (a === 'atilma' && dB > 140 && !wrongSide) use = true;
+        else if (a === 'sok' && dOpp < 90 && Math.hypot(opp.x - b.x, opp.y - b.y) < 60) use = true;
+        else if (a === 'miknatis' && dB < 150 && dB > 50 && dO < dB) use = true;
+        else if (a === 'dev' && (defend || dOpp < 70)) use = true;
+        else if (a === 'buz' && dO < dB && dO < 80) use = true;
+        else if (a === 'isinlan' && (wrongSide || dB > 220) && !defend) use = true;
+        else if (a === 'kalkan' && Math.abs(ownX - b.x) < 200 && b.vx * side > 1.5) use = true;
+        else if (a === 'hayalet' && dOpp < 60 && dB < 120) use = true;
+        else if (a === 'turbo' && dB > 160) use = true;
+        else if ((a === 'kucult' || a === 'ters') && dOpp < 160 && dO < dB + 40) use = true;
+        else if (a === 'bomba' && Math.hypot(opp.x - b.x, opp.y - b.y) < 70 && dB > 60) use = true;
+        else if (a === 'mayin' && (defend || Math.abs(ownX - me.x) < 220)) use = true;
+        else if (a === 'ruzgar' && side * b.x < 0 && Math.abs(goalX - b.x) < 420) use = true;
+        else if (a === 'lastik' && close) use = true;
+        else if (a === 'cagir' && dB > 180 && dO < dB) use = true;
+        else if (a === 'sis' && close && distGoal < 400) use = true;
+        if (use) this.out.ab |= 1 << k;
       }
       return this.out;
     }

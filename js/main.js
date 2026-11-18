@@ -85,16 +85,15 @@
       $('sbName' + i).textContent = cs[i].name;
       $('sbBadge' + i).style.background = `linear-gradient(90deg, ${cs[i].c1} 50%, ${cs[i].c2} 50%)`;
       const card = $('ab' + i);
-      card.querySelector('.ab-key').textContent = keyLabel(i);
-      card.querySelector('.ab-fill').style.background = cs[i].c1;
+      card.style.setProperty('--tc', cs[i].c1);
     }
-    hud.ab = [null, null]; hud.next = [null, null]; hud.cls = ['', ''];
+    hud.ab = [null, null]; hud.slot = [[], []];
     $('ping').classList.toggle('hidden', !(m === 'host' || m === 'guest'));
     hud.score = [-1, -1];
     const L = (s, a) => I.label(s, a, 1);
     const hint = m === 'local'
-      ? `P1: WASD • ${L('p1', 'kick')} şut • ${L('p1', 'sp')} koş • ${L('p1', 'ab')} yetenek • 1-4 emoji   |   P2: Oklar • ${L('p2', 'kick')} şut • ${L('p2', 'sp')} koş • ${L('p2', 'ab')} yetenek • 7-0 emoji`
-      : `${I.label('solo', 'kick')}: basılı tut → BIRAK = şut (rakibe de vurur!) • ${I.label('solo', 'sp')} koş • ${I.label('solo', 'ab')} yetenek • 1-4 emoji • Esc menü`;
+      ? `P1: WASD • ${L('p1', 'kick')} şut • ${L('p1', 'sp')} koş • 1-2-3 yetenek • 5-8 emoji   |   P2: Oklar • ${L('p2', 'kick')} şut • ${L('p2', 'sp')} koş • ${L('p2', 'ab1')}-${L('p2', 'ab2')}-${L('p2', 'ab3')} yetenek`
+      : `${I.label('solo', 'kick')}: basılı tut → BIRAK = şut • ${I.label('solo', 'sp')} koş • 1-2-3 yetenek (aynı anda bas = KOMBO) • 5-8 emoji • Esc menü`;
     const h = $('controlsHint'); h.textContent = hint; h.classList.remove('fade', 'hidden');
     clearTimeout(hintTimer); hintTimer = setTimeout(() => h.classList.add('fade'), 7000);
     let ser0 = null; try { ser0 = JSON.parse(sessionStorage.getItem(seriesKey())); } catch (e) {}
@@ -103,11 +102,12 @@
     A.init(); A.crowdLevel(0.3);
   }
 
-  function keyLabel(i) {
-    if (mode === 'local') return 'Yetenek: ' + I.label(i === 0 ? 'p1' : 'p2', 'ab', 1);
-    if (mode === 'bot') return i === 0 ? 'Yetenek: ' + I.label('solo', 'ab', 1) : 'BOT';
-    if (mode === 'host') return i === 0 ? 'Yetenek: ' + I.label('solo', 'ab', 1) : 'RAKİP';
-    if (mode === 'guest') return i === 1 ? 'Yetenek: ' + I.label('solo', 'ab', 1) : 'RAKİP';
+  // i: oyuncu, k: yuva -> tuş adı (karşı taraf ise boş)
+  function slotKey(i, k) {
+    const act = 'ab' + (k + 1);
+    if (mode === 'local') return I.label(i === 0 ? 'p1' : 'p2', act, 1);
+    if ((mode === 'bot' || mode === 'host') && i === 0) return I.label('solo', act, 1);
+    if (mode === 'guest' && i === 1) return I.label('solo', act, 1);
     return '';
   }
 
@@ -245,19 +245,34 @@
     for (let i = 0; i < 2; i++) {
       const p = sim.players[i];
       const card = $('ab' + i);
-      if (p.ability && hud.ab[i] !== p.ability) {
-        const swap = hud.ab[i] != null;
-        hud.ab[i] = p.ability;
-        const ab = TP.ABILITIES[p.ability];
-        card.querySelector('.ab-icon').textContent = ab.icon;
-        card.querySelector('.ab-name').textContent = ab.name;
-        if (swap) { card.classList.remove('swap'); void card.offsetWidth; card.classList.add('swap'); }
+      const deckKey = (p.deck || []).join(',');
+      const slots = card.querySelectorAll('.slot');
+      if (hud.ab[i] !== deckKey) {
+        hud.ab[i] = deckKey; hud.slot[i] = [];
+        slots.forEach((el, k) => {
+          const a = p.deck && p.deck[k], A_ = a && TP.ABILITIES[a];
+          el.classList.toggle('hidden', !A_);
+          if (!A_) return;
+          el.querySelector('.s-icon').textContent = A_.icon;
+          el.querySelector('.s-key').textContent = slotKey(i, k);
+          el.title = A_.name;
+        });
       }
-      if (hud.next[i] !== p.next) { hud.next[i] = p.next; card.querySelector('.ab-next').textContent = p.next && TP.ABILITIES[p.next] ? TP.ABILITIES[p.next].icon : ''; }
-      const armed = p.rocket > 0 || p.curve > 0 || p.magnet > 0 || p.giant > 0;
-      const cls = armed ? 'armed' : p.cd > 0 ? 'cool' : 'ready';
-      if (hud.cls[i] !== cls) { card.classList.remove('armed', 'cool', 'ready'); card.classList.add(cls); hud.cls[i] = cls; }
-      card.querySelector('.ab-fill').style.width = (p.cd > 0 ? (1 - p.cd / p.cdMax) * 100 : 100) + '%';
+      const armed = { roket: p.rocket > 0, falso: p.curve > 0, miknatis: p.magnet > 0, dev: p.giant > 0, hayalet: p.ghost > 0, turbo: p.turbo > 0 };
+      slots.forEach((el, k) => {
+        const a = p.deck && p.deck[k];
+        if (!a) return;
+        const cd = p.cd[k] || 0, mx = p.cdMax[k] || 1;
+        const st = armed[a] ? 'armed' : cd > 0 ? 'cool' : 'ready';
+        const sec = cd > 0 ? Math.ceil(cd / 60) : '';
+        const key = st + sec;
+        if (hud.slot[i][k] !== key) {
+          hud.slot[i][k] = key;
+          el.classList.remove('armed', 'cool', 'ready'); el.classList.add(st);
+          el.querySelector('.s-cd').textContent = sec;
+        }
+        el.style.setProperty('--p', cd > 0 ? (1 - cd / mx) : 1);
+      });
       const stv = Math.round(p.stamina * 100) + (p.exhausted ? 1000 : 0);
       if (hud.st[i] !== stv) {
         hud.st[i] = stv;
@@ -400,10 +415,10 @@
 
   function fillHelp() {
     $('helpAbs').innerHTML = TP.ABILITY_KEYS.map(k => { const a = TP.ABILITIES[k]; return `<div><b>${a.icon} ${a.name} <span class="muted">(${a.cd} sn)</span></b>${a.desc}</div>`; }).join('');
-    const row = (lbl, s) => `<tr><td>${lbl}</td><td>${I.label(s, 'up', 1)}${I.label(s, 'left', 1)}${I.label(s, 'down', 1)}${I.label(s, 'right', 1)}</td><td>${I.label(s, 'kick')}</td><td>${I.label(s, 'sp')}</td><td>${I.label(s, 'ab')}</td></tr>`;
+    const row = (lbl, s) => `<tr><td>${lbl}</td><td>${I.label(s, 'up', 1)}${I.label(s, 'left', 1)}${I.label(s, 'down', 1)}${I.label(s, 'right', 1)}</td><td>${I.label(s, 'kick')}</td><td>${I.label(s, 'sp')}</td><td>${I.label(s, 'ab1', 1)} ${I.label(s, 'ab2', 1)} ${I.label(s, 'ab3', 1)}</td></tr>`;
     $('helpKeys').innerHTML = '<tr><th></th><th>Hareket</th><th>Şut</th><th>Koş</th><th>Yetenek</th></tr>' +
       row('Tek / Online', 'solo') + row('Aynı klavye P1', 'p1') + row('Aynı klavye P2', 'p2') +
-      '<tr><td>Gamepad</td><td>Sol çubuk</td><td>A / RT</td><td>RB / LT</td><td>B / X / Y</td></tr>';
+      '<tr><td>Gamepad</td><td>Sol çubuk</td><td>A / RT</td><td>RB / LT</td><td>B X Y</td></tr>';
   }
 
   // ---------- tuş ayarları ----------
@@ -543,6 +558,7 @@
       el.classList.toggle('on', i >= 0);
       el.classList.toggle('dim', i < 0 && sel.length >= TP.DECK_SIZE);
       el.querySelector('.badge').textContent = i >= 0 ? i + 1 : '';
+      el.title = i >= 0 ? `Maçta ${i + 1} tuşu` : '';
     });
     let h = '';
     for (let i = 0; i < TP.DECK_SIZE; i++) h += sel[i] ? `<span class="f">${TP.ABILITIES[sel[i]].icon}</span>` : '<span>?</span>';
@@ -734,7 +750,7 @@
         if (net.role !== 'host') return;
         lastRemoteAt = performance.now();
         // yerel ağda (TCP) mesajlar sıralı gelir: her girdiyi kabul et. P2P'de eskileri ele.
-        if (net.via === 'lan' || m.q > remoteQ || m.q < remoteQ - 30) { remoteQ = m.q; remoteInput = { x: +m.x || 0, y: +m.y || 0, kick: !!m.k, ab: !!m.a, sp: !!m.p, emo: (+m.e | 0) % 5 }; }
+        if (net.via === 'lan' || m.q > remoteQ || m.q < remoteQ - 30) { remoteQ = m.q; remoteInput = { x: +m.x || 0, y: +m.y || 0, kick: !!m.k, ab: (+m.a | 0) & 7, sp: !!m.p, emo: (+m.e | 0) % 5 }; }
         break;
       case 's':
         if (mode !== 'guest' || m.m !== matchId) return;
@@ -753,7 +769,7 @@
   function guestStep(live) {
     const inp = I.read('solo', 0);
     const q = ++guestSeq;
-    net.send({ t: 'i', q, x: inp.x, y: inp.y, k: inp.kick ? 1 : 0, a: inp.ab ? 1 : 0, p: inp.sp ? 1 : 0, e: inp.emo || 0 }, true);
+    net.send({ t: 'i', q, x: inp.x, y: inp.y, k: inp.kick ? 1 : 0, a: inp.ab | 0, p: inp.sp ? 1 : 0, e: inp.emo || 0 }, true);
     pred.push({ q, inp });
     if (pred.length > 120) pred.shift();
     if (live) { sim.step([hostIn, inp]); sim.events = []; }

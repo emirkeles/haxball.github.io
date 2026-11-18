@@ -729,12 +729,12 @@
         case 'goal': {
           const col = tc(e.team), col2 = this.chars ? this.chars[e.team].c2 : '#fff';
           const gx = e.team === 0 ? C.FW + C.GD * 0.5 : -C.FW - C.GD * 0.5;
-          fx.burst(gx, e.y, 90, { speed: 9, color: [col, col2, '#fff', '#ffd23f'], life: 110, size: 4, shape: 'r', drag: 0.96, vz: 6 });
+          fx.burst(gx, e.y, 28, { speed: 7, color: [col, col2, '#fff', '#ffd23f'], life: 80, size: 3.5, shape: 'r', drag: 0.95, vz: 5 });
           fx.ring(e.x, e.y, 10, 160, 40, '#fff', 10);
           this.netWobble[e.team === 0 ? 1 : 0] = [22, e.y, 0];
           this.shakeBy(22); this.zoomPunch = 0.07; this.flash = 0.5;
           this.hype = 1; this.hypeTeam = e.team;
-          this.confettiT = 150; this.confettiCols = [col, col2, '#fff', '#ffd23f'];
+          this.confettiT = 45; this.confettiCols = [col, col2, '#fff', '#ffd23f'];
           this.celebrate = { team: e.team, scorer: e.team, t: 170 }; // kendi kalesine golde atan üzülür, puanı alan sevinir
           break;
         }
@@ -816,7 +816,7 @@
           break;
         case 'end':
           this.hype = 1; this.hypeTeam = e.winner;
-          this.confettiT = 400; this.confettiCols = e.winner >= 0 ? [tc(e.winner), this.chars[e.winner].c2, '#fff', '#ffd23f'] : ['#fff', '#ffd23f'];
+          this.confettiT = 120; this.confettiCols = e.winner >= 0 ? [tc(e.winner), this.chars[e.winner].c2, '#fff', '#ffd23f'] : ['#fff', '#ffd23f'];
           if (e.winner >= 0) this.celebrate = { team: e.winner, scorer: e.winner, t: 100000 };
           break;
       }
@@ -844,7 +844,7 @@
 
       if (this.confettiT > 0) {
         this.confettiT -= dt;
-        for (let i = 0; i < 3; i++) {
+        if (Math.random() < 0.4) for (let i = 0; i < 1; i++) {
           this.fx.add({ x: (Math.random() - 0.5) * 2 * C.OW, y: -C.OH - 30 + Math.random() * 30, vx: (Math.random() - 0.5) * 1.5, vy: 1.5 + Math.random() * 2, life: 200, max: 200, size: 2.5 + Math.random() * 2,
             color: this.confettiCols[(Math.random() * this.confettiCols.length) | 0], drag: 0.995, grav: 0.01, shape: 'r', rot: Math.random() * TAU, vr: (Math.random() - 0.5) * 0.3 });
         }
@@ -1043,27 +1043,27 @@
 
       // tribün çatısının gölgesi (üst kenar)
       const sg = ctx.createLinearGradient(0, -C.OH - 40, 0, -C.OH + 70);
-      sg.addColorStop(0, 'rgba(0,0,10,0.28)'); sg.addColorStop(1, 'rgba(0,0,10,0)');
+      sg.addColorStop(0, 'rgba(0,0,10,0.14)'); sg.addColorStop(1, 'rgba(0,0,10,0)');
       ctx.fillStyle = sg; ctx.fillRect(-C.OW - 40, -C.OH - 40, 2 * C.OW + 80, 110);
 
       if (this.theme === 'gece') {
         // projektörle aydınlanan saha, karanlık tribünler
-        ctx.fillStyle = 'rgba(2,6,25,0.72)';
+        ctx.fillStyle = 'rgba(2,6,25,0.4)';
         ctx.beginPath(); ctx.rect(-C.OW - 400, -C.OH - 400, 2 * C.OW + 800, 2 * C.OH + 800);
         ctx.rect(-C.OW, -C.OH, 2 * C.OW, 2 * C.OH); ctx.fill('evenodd');
         const rg = ctx.createRadialGradient(0, 0, C.OH * 0.6, 0, 0, C.OW * 1.1);
-        rg.addColorStop(0, 'rgba(2,6,25,0.12)'); rg.addColorStop(1, 'rgba(2,6,25,0.5)');
+        rg.addColorStop(0, 'rgba(2,6,25,0)'); rg.addColorStop(1, 'rgba(2,6,25,0.22)');
         ctx.fillStyle = rg; ctx.fillRect(-C.OW, -C.OH, 2 * C.OW, 2 * C.OH);
       }
       if (this.theme === 'kar' && Math.random() < 0.9) {
         for (let i = 0; i < 2; i++) this.fx.add({ x: (Math.random() - 0.5) * 2 * (C.OW + 60), y: -C.OH - 60, vx: (Math.random() - 0.3) * 0.6, vy: 1 + Math.random() * 1.2, life: 420, max: 420, size: 1.2 + Math.random() * 1.6, color: 'rgba(255,255,255,0.85)', drag: 1, shape: 'c' });
       }
       ctx.setTransform(1, 0, 0, 1, 0, 0);
-      const tint = { aksam: 'rgba(255,120,40,0.13)', gece: 'rgba(10,20,70,0.12)', kar: 'rgba(200,220,255,0.10)' }[this.theme];
+      const tint = { aksam: 'rgba(255,140,60,0.08)', gece: 'rgba(10,20,70,0.06)' }[this.theme];
       if (tint) { ctx.fillStyle = tint; ctx.fillRect(0, 0, this.cv.width, this.cv.height); }
       if (this.flash > 0.01) { ctx.fillStyle = `rgba(255,255,255,${this.flash * 0.5})`; ctx.fillRect(0, 0, this.cv.width, this.cv.height); }
       const vg = ctx.createRadialGradient(this.cv.width / 2, this.cv.height / 2, Math.min(this.cv.width, this.cv.height) * 0.45, this.cv.width / 2, this.cv.height / 2, Math.max(this.cv.width, this.cv.height) * 0.75);
-      vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.45)');
+      vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.18)');
       ctx.fillStyle = vg; ctx.fillRect(0, 0, this.cv.width, this.cv.height);
     }
 
@@ -1364,12 +1364,7 @@
           ctx.fillText('★', Math.cos(a) * (p.r + 6), Math.sin(a) * (p.r * 0.4) - p.r - 8);
         }
       }
-      if (p.cd > 0) {
-        ctx.strokeStyle = 'rgba(0,0,0,0.45)'; ctx.lineWidth = 3;
-        ctx.beginPath(); ctx.arc(0, 0, p.r + 3, 0, TAU); ctx.stroke();
-        ctx.strokeStyle = 'rgba(255,255,255,0.7)';
-        ctx.beginPath(); ctx.arc(0, 0, p.r + 3, -Math.PI / 2, -Math.PI / 2 + TAU * (1 - p.cd / p.cdMax)); ctx.stroke();
-      }
+
       ctx.restore();
     }
   }
