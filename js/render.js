@@ -735,7 +735,7 @@
           this.shakeBy(22); this.zoomPunch = 0.07; this.flash = 0.5;
           this.hype = 1; this.hypeTeam = e.team;
           this.confettiT = 150; this.confettiCols = [col, col2, '#fff', '#ffd23f'];
-          this.celebrate = { team: e.own ? 1 - e.team : e.team, scorer: e.team, t: 170 };
+          this.celebrate = { team: e.team, scorer: e.team, t: 170 }; // kendi kalesine golde atan üzülür, puanı alan sevinir
           break;
         }
         case 'kickoff':
