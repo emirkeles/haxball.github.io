@@ -1,4 +1,4 @@
-# Toparlak Lig ⚽ (v2.7)
+# Toparlak Lig ⚽ (v2.8)
 
 Yuvarlak karakterlerle sert, arcade 1v1 tarayıcı futbolu: roket şutlar rakibi uçurur, bombalar patlar, 3 darbede rakip sersemler.
 

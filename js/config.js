@@ -1,6 +1,6 @@
 // TOPARLAK — sabitler, yetenekler, renkler
 window.TP = window.TP || {};
-TP.VERSION = 'v2.7 • 18.11.2026';
+TP.VERSION = 'v2.8 • 18.11.2026';
 
 TP.C = {
   TICK: 1 / 60,
@@ -71,6 +71,9 @@ TP.ABILITIES = {
   cagir:  { name: 'Topu Çağır',  icon: '🪄', cd: 14,  desc: 'Top nerede olursa olsun anında ayağının önüne gelir.' },
   sis:    { name: 'Sis',         icon: '🌫️', cd: 9,   desc: 'Top 2.8 saniye boyunca neredeyse görünmez olur. Kafalar karışsın!' },
 };
+// Bekleme süreleri: tablodaki temel değerler x2.5 (yarım saniyeye yuvarlanır)
+TP.CD_MULT = 2.5;
+for (const k in TP.ABILITIES) TP.ABILITIES[k].cd = Math.round(TP.ABILITIES[k].cd * TP.CD_MULT * 2) / 2;
 TP.ABILITY_KEYS = Object.keys(TP.ABILITIES);
 TP.EMOTES = ['', '😂', '🔥', '😡', '👍'];
 TP.TAUNTS = [
