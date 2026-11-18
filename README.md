@@ -1,4 +1,4 @@
-# Toparlak Lig ⚽ (v2.5)
+# Toparlak Lig ⚽ (v2.6)
 
 Yuvarlak karakterlerle sert, arcade 1v1 tarayıcı futbolu: roket şutlar rakibi uçurur, bombalar patlar, 3 darbede rakip sersemler.
 
@@ -28,8 +28,7 @@ Maç başında 19 karttan 3'ünü seçersin. Maçta üçü de elinde: **1-2-3** 
 - **Roket şut** rakibe çarparsa onu havaya uçurur, kalesine kadar gömebilir.
 - Sahaya ara ara **⚡ enerji küresi** düşer: kapan yeteneğini ve koşu barını doldurur.
 - **Mükemmel şut:** halka dolup maviye döndüğü an bırakırsan şut çok daha sert gider.
-- **Langırt haritası:** ortadaki tamponlar topu ve oyuncuları fırlatır.
-- **Kaos olayları:** buzlu zemin, dev top, meteor yağmuru, herkese turbo (menüden kapatılabilir).
+- **Ekstra modlar (isteğe bağlı, menüden):** *Langırt*: ortadaki tamponlar topu ve oyuncuları fırlatır. *Kaos*: buzlu zemin, dev top, meteor yağmuru, herkese turbo.
 - **Seri skoru:** aynı rakiple rövanşlarda seri tutulur.
 - **Laf sokma:** golden sonraki 5 saniyede rakibe hazır laf at (1-6, P2: U I O J K L ya da tıkla). Laflar menüdeki 💬 Laflar ekranından değiştirilebilir.
 - **Emoji:** 5-8 (P2: 9 0 * -) 😂🔥😡👍

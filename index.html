@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;600;700;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=15">
+<link rel="stylesheet" href="css/style.css?v=16">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='44' fill='%23e63946' stroke='%23111' stroke-width='8'/><circle cx='38' cy='44' r='9' fill='white'/><circle cx='62' cy='44' r='9' fill='white'/><circle cx='40' cy='45' r='4'/><circle cx='64' cy='45' r='4'/></svg>">
 </head>
 <body>
@@ -67,11 +67,8 @@
       <label>Gol sınırı
         <select id="setGoals"><option value="3">3</option><option value="5">5</option><option value="7">7</option><option value="0">Yok</option></select>
       </label>
-      <label>Harita
-        <select id="setMap"><option value="rastgele">Rastgele</option><option value="klasik">Klasik</option><option value="langirt">Langırt</option></select>
-      </label>
-      <label>Kaos
-        <select id="setChaos"><option value="1">Açık</option><option value="0">Kapalı</option></select>
+      <label>Ekstra mod
+        <select id="setExtra"><option value="yok">Yok</option><option value="langirt">Langırt (tamponlar)</option><option value="kaos">Kaos (meteor, buz, dev top…)</option><option value="ikisi">Langırt + Kaos</option></select>
       </label>
       <label>Stadyum
         <select id="setTheme"><option value="rastgele">Rastgele</option><option value="gunduz">Gündüz</option><option value="aksam">Akşam</option><option value="gece">Gece</option></select>
@@ -172,8 +169,7 @@
           <li><b>Şut:</b> Şut tuşuna bas ve <u>bırak</u>: tuşu bıraktığın an vurursun. Ne kadar uzun basılı tutarsan o kadar sert (halka dolar). Basılı tutarken yavaşlarsın.</li>
           <li><b>Rakibe vur:</b> Top uzaktayken rakibin dibinde şutu bırakırsan ona vurursun. Sert şutla isabet ettirmek de sayılır. <b>Ard arda 3 isabette rakip sersemler</b> (2.5 sn içinde vurmazsan sayaç sıfırlanır). Roket şut rakibi uçurur!</li>
           <li><b>Mükemmel şut:</b> Halka dolup <span style="color:#7fd1ff">maviye döndüğü an</span> bırakırsan şut çok daha sert gider.</li>
-          <li><b>Kaos:</b> Ara ara buzlu zemin, dev top, meteor yağmuru ya da herkese turbo gelir (menüden kapatılabilir).</li>
-          <li><b>Langırt haritası:</b> Ortadaki tamponlar topu ve oyuncuları fırlatır.</li>
+          <li><b>Ekstra modlar (menüden seçilir):</b> <i>Langırt</i>: ortadaki tamponlar topu ve oyuncuları fırlatır. <i>Kaos</i>: ara ara buzlu zemin, dev top, meteor yağmuru ya da herkese turbo gelir.</li>
           <li><b>Emoji:</b> 5-6-7-8 tuşları (P2: 9 0 * -) 😂🔥😡👍</li>
           <li><b>Enerji küresi:</b> Sahaya düşen ⚡ küreyi kap, yeteneğin ve koşu barın anında dolar.</li>
           <li><b>Koşu:</b> Shift ile sprint at. Alttaki bar biter, biterse bir süre koşamazsın.</li>
@@ -274,13 +270,13 @@
 
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script src="https://unpkg.com/mqtt@5.10.1/dist/mqtt.min.js"></script>
-<script src="js/config.js?v=15"></script>
-<script src="js/sim.js?v=15"></script>
-<script src="js/bot.js?v=15"></script>
-<script src="js/audio.js?v=15"></script>
-<script src="js/input.js?v=15"></script>
-<script src="js/render.js?v=15"></script>
-<script src="js/net.js?v=15"></script>
-<script src="js/main.js?v=15"></script>
+<script src="js/config.js?v=16"></script>
+<script src="js/sim.js?v=16"></script>
+<script src="js/bot.js?v=16"></script>
+<script src="js/audio.js?v=16"></script>
+<script src="js/input.js?v=16"></script>
+<script src="js/render.js?v=16"></script>
+<script src="js/net.js?v=16"></script>
+<script src="js/main.js?v=16"></script>
 </body>
 </html>

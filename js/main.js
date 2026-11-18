@@ -12,9 +12,12 @@
   let chars = load('tp_chars', null);
   if (!Array.isArray(chars) || chars.length < 2) chars = [TP.defaultChar(0), TP.defaultChar(1)];
   chars = chars.map((c, i) => TP.sanitizeChar(c, i));
-  const settings = Object.assign({ time: 180, goals: 5, bot: 'orta', theme: 'rastgele', map: 'rastgele', chaos: 1 }, load('tp_settings', {}));
+  const settings = Object.assign({ time: 180, goals: 5, bot: 'orta', theme: 'rastgele', extra: 'yok' }, load('tp_settings', {}));
   if (settings.theme === 'kar') settings.theme = 'rastgele';
-  const pickMap = () => settings.map === 'rastgele' ? (Math.random() < 0.5 ? 'klasik' : 'langirt') : settings.map;
+  if (!['yok', 'langirt', 'kaos', 'ikisi'].includes(settings.extra)) settings.extra = 'yok';
+  delete settings.map; delete settings.chaos;
+  const pickMap = () => (settings.extra === 'langirt' || settings.extra === 'ikisi') ? 'langirt' : 'klasik';
+  const pickChaos = () => settings.extra === 'kaos' || settings.extra === 'ikisi';
   const pickTheme = () => settings.theme === 'rastgele' ? ['gunduz', 'aksam', 'gece'][(Math.random() * 3) | 0] : settings.theme;
 
   const canvas = $('game');
@@ -374,20 +377,18 @@
     $('setTime').value = String(settings.time);
     $('setGoals').value = String(settings.goals);
     $('setTheme').value = settings.theme;
-    $('setMap').value = settings.map;
-    $('setChaos').value = String(settings.chaos);
+    $('setExtra').value = settings.extra;
     $('muteBtn').textContent = A.muted ? '🔇 Ses kapalı' : '🔊 Ses açık';
   }
   $('botLevel').onclick = (e) => { const v = e.target.dataset.v; if (!v) return; settings.bot = v; save('tp_settings', settings); A.ui(); refreshMenu(); };
   $('setTime').onchange = (e) => { settings.time = +e.target.value; save('tp_settings', settings); };
   $('setGoals').onchange = (e) => { settings.goals = +e.target.value; save('tp_settings', settings); };
   $('setTheme').onchange = (e) => { settings.theme = e.target.value; save('tp_settings', settings); };
-  $('setMap').onchange = (e) => { settings.map = e.target.value; save('tp_settings', settings); };
-  $('setChaos').onchange = (e) => { settings.chaos = +e.target.value; save('tp_settings', settings); };
+  $('setExtra').onchange = (e) => { settings.extra = e.target.value; save('tp_settings', settings); };
   $('muteBtn').onclick = () => { A.init(); A.toggleMute(); refreshMenu(); };
 
   function beginOffline(m) {
-    const opts = { time: settings.time, goals: settings.goals, theme: pickTheme(), map: pickMap(), chaos: !!settings.chaos };
+    const opts = { time: settings.time, goals: settings.goals, theme: pickTheme(), map: pickMap(), chaos: pickChaos() };
     if (m === 'bot') {
       const bc = TP.randomChar(['Robo', 'Çelik', 'Vınn', 'Tornado', 'Pervane'][Math.floor(Math.random() * 5)]);
       bc.name = 'BOT ' + bc.name;
@@ -714,7 +715,7 @@
     matchId++;
     draft = null;
     const cs = TP.resolveKits([chars[0], opponentChar]);
-    const opts = { time: settings.time, goals: settings.goals, theme: pickTheme(), map: pickMap(), chaos: !!settings.chaos };
+    const opts = { time: settings.time, goals: settings.goals, theme: pickTheme(), map: pickMap(), chaos: pickChaos() };
     const decks = onlineDecks.slice();
     net.send({ t: 'start', id: matchId, chars: cs, opts, decks });
     startMatch('host', cs, opts, decks);
