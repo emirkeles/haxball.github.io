@@ -1,4 +1,4 @@
-# Toparlak Lig ⚽ (v1.8)
+# Toparlak Lig ⚽ (v1.9)
 
 Yuvarlak karakterlerle 1v1 tarayıcı futbolu: sert şut, sprint, yetenek kartları, karakter/forma editörü.
 
