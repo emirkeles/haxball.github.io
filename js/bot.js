@@ -6,7 +6,7 @@
       this.level = level || 'orta';
       const L = { kolay: { speed: 0.62, react: 14, aim: 0.55, ab: 0.004 }, orta: { speed: 0.85, react: 7, aim: 0.75, ab: 0.012 }, zor: { speed: 1, react: 2, aim: 0.88, ab: 0.03 } };
       this.cfg = L[this.level] || L.orta;
-      this.out = { x: 0, y: 0, kick: false, ab: false };
+      this.out = { x: 0, y: 0, kick: false, ab: false, sp: false };
       this.t = 0; this.kickHold = 0; this.mode = 'atk';
       this.wobble = Math.random() * 10;
     }
@@ -61,6 +61,8 @@
       if (dl < 6) speed *= dl / 6;
       if (dl > 0.01) { dx /= dl; dy /= dl; }
       this.out.x = dx * speed; this.out.y = dy * speed;
+      // Sprint: uzaktaysak ve nefesimiz varsa koş
+      this.out.sp = (dB > 130 || (defend && dB > 70)) && me.stamina > (this.level === 'kolay' ? 0.7 : 0.35) && this.level !== 'kolay' || (this.level === 'kolay' && dB > 250 && me.stamina > 0.8);
 
       // Şut kararı
       const toBx = b.x - me.x, toBy = b.y - me.y, tl = Math.hypot(toBx, toBy) || 1;
@@ -86,6 +88,9 @@
         else if (a === 'sok' && dOpp < 90 && Math.hypot(opp.x - b.x, opp.y - b.y) < 60) this.out.ab = true;
         else if (a === 'miknatis' && dB < 150 && dB > 50 && dO < dB) this.out.ab = true;
         else if (a === 'dev' && (defend || dOpp < 70)) this.out.ab = true;
+        else if (a === 'buz' && dO < dB && dO < 80) this.out.ab = true;
+        else if (a === 'isinlan' && (wrongSide || dB > 220) && !defend) this.out.ab = true;
+        else if (a === 'kalkan' && Math.abs(ownX - b.x) < 200 && b.vx * side > 1.5) this.out.ab = true;
       }
       return this.out;
     }

@@ -36,14 +36,34 @@
     return p;
   }
 
-  function makePlayer(team, ch) {
-    return {
-      team, ch, ability: ch.ability,
+  function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = (Math.random() * (i + 1)) | 0; [a[i], a[j]] = [a[j], a[i]]; } return a; }
+
+  function makePlayer(team, ch, deck) {
+    deck = (deck && deck.length ? deck : [ch.ability || 'roket']).filter(k => TP.ABILITIES[k]);
+    if (!deck.length) deck = ['roket'];
+    const p = {
+      team, ch, deck, queue: [], ability: null, next: null, slow: 0,
       x: 0, y: 0, vx: 0, vy: 0, r: C.PLAYER_R, invMass: C.PLAYER_INVMASS,
       kickReady: false, kickHeld: false, charge: 0, abHeld: false,
       cd: 0, cdMax: 1, rocket: 0, curve: 0, magnet: 0, giant: 0, dash: 0, stun: 0,
-      ix: 0, iy: 0,
+      ix: 0, iy: 0, stamina: 1, stDelay: 0, exhausted: false, sprinting: false, kickBuf: 0,
     };
+    drawCard(p);
+    return p;
+  }
+
+  // Kart destesinden rastgele sırayla yetenek çek
+  function drawCard(p) {
+    if (!p.queue.length) {
+      p.queue = shuffle(p.deck.slice());
+      if (p.deck.length > 1 && p.queue[0] === p.ability) p.queue.push(p.queue.shift());
+    }
+    p.ability = p.queue.shift();
+    if (!p.queue.length) {
+      p.queue = shuffle(p.deck.slice());
+      if (p.deck.length > 1 && p.queue[0] === p.ability) p.queue.push(p.queue.shift());
+    }
+    p.next = p.queue[0];
   }
 
   function collideCircles(a, b, bounce) {
@@ -87,7 +107,9 @@
       this.opts = Object.assign({ timeLimit: 180, scoreLimit: 5 }, opts);
       this.walls = buildWalls();
       this.posts = buildPosts();
-      this.players = [makePlayer(0, opts.chars[0]), makePlayer(1, opts.chars[1])];
+      const decks = opts.decks || [];
+      this.players = [makePlayer(0, opts.chars[0], decks[0]), makePlayer(1, opts.chars[1], decks[1])];
+      this.shields = [];
       this.ball = { x: 0, y: 0, vx: 0, vy: 0, r: C.BALL_R, invMass: C.BALL_INVMASS, fire: 0, fireTeam: -1, spin: 0 };
       this.score = [0, 0];
       this.tick = 0;
@@ -111,10 +133,12 @@
     resetKickoff(first) {
       const b = this.ball;
       b.x = 0; b.y = 0; b.vx = 0; b.vy = 0; b.fire = 0; b.spin = 0;
+      this.shields = [];
       this.players.forEach((p, i) => {
         const side = p.team === 0 ? -1 : 1;
         p.x = side * 200; p.y = 0; p.vx = 0; p.vy = 0;
-        p.kickReady = false; p.charge = 0; p.dash = 0; p.stun = 0; p.magnet = 0; p.giant = 0;
+        p.kickReady = false; p.charge = 0; p.dash = 0; p.stun = 0; p.magnet = 0; p.giant = 0; p.kickBuf = 0; p.slow = 0;
+        p.stamina = Math.max(p.stamina, 0.6); p.exhausted = false;
         p.r = C.PLAYER_R; p.invMass = C.PLAYER_INVMASS;
       });
       this.phase = 'kickoff';
@@ -123,12 +147,36 @@
     }
 
     useAbility(p, ax, ay) {
-      const A = TP.ABILITIES[p.ability];
+      const used = p.ability;
+      const A = TP.ABILITIES[used];
       const opp = this.players[1 - p.team];
       const b = this.ball;
       p.cd = p.cdMax = Math.round(A.cd * 60);
       this.stats.abil[p.team]++;
-      switch (p.ability) {
+      const extra = {};
+      switch (used) {
+        case 'buz':
+          opp.slow = 150; opp.kickReady = false; opp.charge = 0;
+          extra.tx = opp.x; extra.ty = opp.y;
+          break;
+        case 'isinlan': {
+          const side = p.team === 0 ? 1 : -1; // hücum yönü
+          let gx = side * (C.FW + 10) - b.x, gy = -b.y;
+          const gl = Math.hypot(gx, gy) || 1; gx /= gl; gy /= gl;
+          const dd = p.r + b.r + 8;
+          extra.fx = p.x; extra.fy = p.y;
+          p.x = Math.max(-C.OW + p.r, Math.min(C.OW - p.r, b.x - gx * dd));
+          p.y = Math.max(-C.OH + p.r, Math.min(C.OH - p.r, b.y - gy * dd));
+          p.vx = gx * 1.5; p.vy = gy * 1.5;
+          break;
+        }
+        case 'kalkan': {
+          const sx = p.team === 0 ? -1 : 1;
+          this.shields = this.shields.filter(s => s.team !== p.team);
+          const y = Math.max(-C.GH + 30, Math.min(C.GH - 30, b.y * 0.4));
+          this.shields.push({ team: p.team, x: sx * (C.FW - 30), y, r: 30, t: 270, invMass: 0, vx: 0, vy: 0 });
+          break;
+        }
         case 'roket': p.rocket = 240; break;
         case 'falso': p.curve = 300; break;
         case 'miknatis': p.magnet = 96; break;
@@ -159,14 +207,24 @@
           break;
         }
       }
-      this.emit('ab', { a: p.ability, team: p.team, x: p.x, y: p.y });
+      drawCard(p);
+      this.emit('ab', Object.assign({ a: used, team: p.team, x: p.x, y: p.y }, extra));
     }
 
     kick(p) {
       const b = this.ball;
       const dx = b.x - p.x, dy = b.y - p.y;
       const d = Math.hypot(dx, dy) || 1;
-      const nx = dx / d, ny = dy / d;
+      let nx = dx / d, ny = dy / d;
+      // Nişan yardımı: bastığın yön şutu yönlendirir
+      const il = Math.hypot(p.ix, p.iy);
+      if (il > 0.3) {
+        const ux = p.ix / il, uy = p.iy / il;
+        if (ux * nx + uy * ny > 0.05) {
+          let ax = nx + ux * C.AIM_ASSIST, ay = ny + uy * C.AIM_ASSIST;
+          const al = Math.hypot(ax, ay) || 1; nx = ax / al; ny = ay / al;
+        }
+      }
       const ch = p.charge;
       let s = C.KICK_BASE + C.KICK_CHARGE_BONUS * Math.pow(ch, 1.3);
       let kind = ch > 0.6 ? 'power' : 'kick';
@@ -187,7 +245,7 @@
         p.curve = 0; kind = kind === 'kick' ? 'curve' : kind;
       }
       p.vx -= nx * C.KICK_RECOIL; p.vy -= ny * C.KICK_RECOIL;
-      p.kickReady = false;
+      p.kickReady = false; p.kickBuf = 0;
       this.lastTouch = p.team;
       this.stats.kicks[p.team]++;
       if (ch > 0.6) this.stats.power[p.team]++;
@@ -213,12 +271,27 @@
         const l = Math.hypot(ax, ay);
         if (l > 1) { ax /= l; ay /= l; }
         p.ix = ax; p.iy = ay;
+        // Şut: basınca hazır, basılı tutunca şarj; bırakınca kısa bir süre daha geçerli (tampon)
         if (inp.kick && !p.kickHeld) { p.kickReady = true; p.charge = 0; }
-        if (!inp.kick) { p.kickReady = false; p.charge = 0; }
+        if (inp.kick) p.kickBuf = C.KICK_BUFFER;
+        else if (p.kickBuf > 0) { p.kickBuf--; if (p.kickBuf === 0) { p.kickReady = false; p.charge = 0; } }
+        else { p.kickReady = false; p.charge = 0; }
         p.kickHeld = !!inp.kick;
-        if (p.kickReady) p.charge = Math.min(1, p.charge + 1 / C.CHARGE_TIME);
-        let acc = p.kickReady ? C.PLAYER_KICK_ACC : C.PLAYER_ACC;
+        if (p.kickReady && p.kickHeld) p.charge = Math.min(1, p.charge + 1 / C.CHARGE_TIME);
+        let acc = p.kickHeld && p.kickReady ? C.PLAYER_KICK_ACC : C.PLAYER_ACC;
         if (p.giant > 0) acc *= 0.92;
+        if (p.slow > 0) acc *= 0.4;
+        // Sprint + dayanıklılık
+        const moving = Math.hypot(ax, ay) > 0.1;
+        if (p.exhausted && p.stamina >= C.STAMINA_MIN) p.exhausted = false;
+        p.sprinting = !!inp.sp && moving && !p.exhausted && p.stamina > 0 && p.slow <= 0;
+        if (p.sprinting) {
+          acc *= C.SPRINT_MULT;
+          p.stamina = Math.max(0, p.stamina - C.STAMINA_DRAIN);
+          p.stDelay = C.STAMINA_DELAY;
+          if (p.stamina <= 0) { p.exhausted = true; this.emit('tired', { team: p.team, x: p.x, y: p.y }); }
+        } else if (p.stDelay > 0) p.stDelay--;
+        else p.stamina = Math.min(1, p.stamina + C.STAMINA_REGEN * (p.exhausted ? 1.25 : 1));
         p.vx += ax * acc; p.vy += ay * acc;
         if (inp.ab && !p.abHeld && p.cd <= 0 && this.phase !== 'goal' && this.phase !== 'over') this.useAbility(p, ax, ay);
         p.abHeld = !!inp.ab;
@@ -228,6 +301,7 @@
         if (p.curve > 0) p.curve--;
         if (p.dash > 0) p.dash--;
         if (p.stun > 0) p.stun--;
+        if (p.slow > 0) p.slow--;
         if (p.giant > 0) p.giant--;
         const tr = p.giant > 0 ? 25 : C.PLAYER_R;
         p.r += (tr - p.r) * 0.18;
@@ -242,6 +316,9 @@
           }
         }
       }
+
+      for (const sh of this.shields) sh.t--;
+      if (this.shields.length) this.shields = this.shields.filter(sh => sh.t > 0);
 
       // Falso: hız vektörünü döndür
       if (b.spin !== 0) {
@@ -300,6 +377,11 @@
             }
           }
           if (w.mask & PLAYER) for (const p of P) collideSeg(p, w, C.PLAYER_BOUNCE);
+        }
+        for (const sh of this.shields) {
+          const cb = collideCircles(b, sh, 0.6);
+          if (cb && -cb.rv > 1) { this.emit('shieldhit', { x: b.x, y: b.y, team: sh.team }); b.spin = 0; b.fire = 0; }
+          for (const p of P) collideCircles(p, sh, 0.4);
         }
         for (const post of this.posts) {
           const cb = collideCircles(b, post, 0.5);
@@ -408,7 +490,8 @@
         sc: this.score, ko: this.kickoffTeam, lt: this.lastTouch, w: this.winner, lg: this.lastGoal,
         b: [r(b.x), r(b.y), r(b.vx), r(b.vy), b.fire, r(b.spin * 1000), b.fireTeam],
         p: this.players.map(p => [r(p.x), r(p.y), r(p.vx), r(p.vy), r(p.r), p.kickReady ? 1 : 0, r(p.charge), p.cd, p.cdMax,
-          p.rocket, p.curve, p.magnet, p.giant, p.dash, p.stun]),
+          p.rocket, p.curve, p.magnet, p.giant, p.dash, p.stun, Math.round(p.stamina * 100) / 100, (p.sprinting ? 1 : 0) | (p.exhausted ? 2 : 0), p.ability, p.next, p.slow]),
+        sh: this.shields.map(s => [s.team, Math.round(s.x), Math.round(s.y), s.r, s.t]),
         st: [this.stats.kicks, this.stats.power, this.stats.poss, this.stats.abil],
       };
     }
@@ -421,9 +504,12 @@
       s.p.forEach((a, i) => {
         const p = this.players[i];
         [p.x, p.y, p.vx, p.vy, p.r] = a; p.kickReady = !!a[5];
-        [p.charge, p.cd, p.cdMax, p.rocket, p.curve, p.magnet, p.giant, p.dash, p.stun] = a.slice(6);
+        [p.charge, p.cd, p.cdMax, p.rocket, p.curve, p.magnet, p.giant, p.dash, p.stun, p.stamina] = a.slice(6);
+        p.sprinting = !!(a[16] & 1); p.exhausted = !!(a[16] & 2);
+        p.ability = a[17]; p.next = a[18]; p.slow = a[19];
       });
       this.stats = { kicks: s.st[0], power: s.st[1], poss: s.st[2], abil: s.st[3] };
+      this.shields = (s.sh || []).map(a => ({ team: a[0], x: a[1], y: a[2], r: a[3], t: a[4], invMass: 0, vx: 0, vy: 0 }));
     }
   }
 

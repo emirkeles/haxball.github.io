@@ -202,3 +202,62 @@ select:focus, input:focus { border-color: var(--yellow); }
   .abcard .ab-info { display: none; }
   .code { font-size: 44px; letter-spacing: 8px; }
 }
+
+/* ---------- v3: kart seçimi ---------- */
+#draft, #keys { background: rgba(8, 11, 16, 0.78); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+.draft-wrap { width: min(1060px, 100%); display: flex; flex-direction: column; gap: 16px; max-height: calc(100vh - 32px); }
+.draft-head { display: flex; align-items: center; gap: 16px; }
+.draft-head canvas { width: 80px; height: 80px; flex-shrink: 0; }
+.draft-head h2 { margin: 0 0 4px; font-size: 26px; }
+.draft-who { font-weight: 900; color: var(--yellow); letter-spacing: 2px; text-transform: uppercase; font-size: 13px; }
+.draft-timer { margin-left: auto; font-size: 34px; font-weight: 900; width: 64px; height: 64px; border-radius: 50%; border: 4px solid var(--yellow); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(176px, 1fr)); gap: 14px; overflow-y: auto; padding: 8px 4px 12px; }
+.acard { position: relative; border: 0; cursor: pointer; text-align: left; color: var(--text); border-radius: 16px; padding: 0; background: #18202b;
+  box-shadow: 0 6px 0 #0b0f14, 0 10px 24px rgba(0,0,0,0.35); transition: transform .15s cubic-bezier(.2,1.4,.4,1), box-shadow .15s; overflow: hidden;
+  animation: cardIn .5s cubic-bezier(.2,1.3,.4,1) backwards; display: flex; flex-direction: column; min-height: 220px; }
+@keyframes cardIn { from { transform: translateY(40px) rotateY(80deg) scale(0.8); opacity: 0; } to { transform: none; opacity: 1; } }
+.acard:hover { transform: translateY(-6px) rotate(-1deg); }
+.acard .art { height: 96px; display: flex; align-items: center; justify-content: center; font-size: 54px; position: relative;
+  background: linear-gradient(135deg, var(--ca, #2b3748), var(--cb, #18202b)); border-bottom: 3px solid rgba(0,0,0,0.35); }
+.acard .art::after { content: ''; position: absolute; inset: 0; background: repeating-linear-gradient(45deg, rgba(255,255,255,0.05) 0 8px, transparent 8px 16px); }
+.acard .body { padding: 10px 12px 14px; display: flex; flex-direction: column; gap: 5px; flex: 1; }
+.acard .nm { font-weight: 900; font-size: 17px; }
+.acard .cdv { font-size: 11px; font-weight: 700; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; }
+.acard .ds { font-size: 12.5px; color: #c4ceda; line-height: 1.38; }
+.acard .badge { position: absolute; top: 8px; right: 8px; width: 30px; height: 30px; border-radius: 50%; background: var(--yellow); color: #1a1405; font-weight: 900;
+  display: none; align-items: center; justify-content: center; border: 3px solid #0b0f14; z-index: 2; font-size: 15px; }
+.acard.on { transform: translateY(-8px); box-shadow: 0 0 0 4px var(--yellow), 0 12px 0 #0b0f14, 0 16px 30px rgba(0,0,0,0.4); }
+.acard.on .badge { display: flex; }
+.acard.dim { opacity: 0.45; }
+.draft-foot { display: flex; align-items: center; gap: 10px; justify-content: flex-end; }
+.draft-picked { margin-right: auto; display: flex; gap: 8px; }
+.draft-picked span { width: 46px; height: 46px; border-radius: 12px; border: 2px dashed rgba(255,255,255,0.25); display: flex; align-items: center; justify-content: center; font-size: 26px; }
+.draft-picked span.f { border: 2px solid var(--yellow); background: rgba(255,210,63,0.1); animation: pop .3s cubic-bezier(.2,1.6,.4,1); }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+.draft-wait { display: flex; flex-direction: column; align-items: center; gap: 4px; font-weight: 700; color: var(--muted); }
+.draft-wait .spinner { margin: 6px; }
+
+/* ---------- tuşlar ---------- */
+.keys-wrap { width: min(620px, 100%); padding: 24px; display: flex; flex-direction: column; gap: 14px; }
+.keylist { display: flex; flex-direction: column; gap: 6px; }
+.krow { display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.04); border-radius: 10px; padding: 8px 12px; }
+.krow span { font-weight: 600; font-size: 14px; }
+.kbtn { min-width: 150px; border: 1px solid var(--line); background: #0f151d; color: #fff; border-radius: 8px; padding: 7px 12px; font-weight: 800; cursor: pointer; font-family: inherit; }
+.kbtn:hover { border-color: var(--yellow); }
+.kbtn.wait { background: var(--yellow); color: #1a1405; animation: readyPulse 0.8s infinite; }
+.keys-foot { display: flex; justify-content: space-between; }
+
+/* ---------- HUD ekleri ---------- */
+.ab-stam { width: 90px; height: 5px; background: rgba(255,255,255,0.12); border-radius: 3px; margin-top: 4px; overflow: hidden; }
+.ab-stam i { display: block; height: 100%; width: 100%; background: var(--green); border-radius: 3px; transition: background .2s; }
+.abcard.right .ab-stam { margin-left: auto; }
+.ab-next { width: 28px; height: 28px; border-radius: 8px; background: rgba(255,255,255,0.06); border: 1px dashed rgba(255,255,255,0.25); font-size: 16px; display: flex; align-items: center; justify-content: center; position: relative; z-index: 1; opacity: 0.8; }
+.ab-next::before { content: 'SIRADA'; position: absolute; top: -13px; font-size: 7px; font-weight: 900; letter-spacing: 1px; color: var(--muted); }
+.abcard.swap .ab-icon { animation: swapIn .45s cubic-bezier(.2,1.6,.4,1); }
+@keyframes swapIn { from { transform: rotateY(90deg) scale(.6); } to { transform: none; } }
+#spiker { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(20px); background: rgba(10,14,20,0.9); border: 1px solid var(--line); border-radius: 12px;
+  padding: 8px 16px; font-weight: 700; font-size: 14px; opacity: 0; transition: opacity .3s, transform .3s; display: flex; gap: 8px; align-items: center; max-width: 52vw; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#spiker.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+#controlsHint { bottom: 70px; }
+@media (max-width: 760px) { #spiker { display: none; } .ab-next { display: none; } }
+.creator-preview { position: sticky; top: 0; }

@@ -15,7 +15,12 @@ TP.C = {
 
   PLAYER_R: 16,
   PLAYER_ACC: 0.125,
-  PLAYER_KICK_ACC: 0.088,
+  PLAYER_KICK_ACC: 0.104,
+  SPRINT_MULT: 1.5,
+  STAMINA_DRAIN: 1 / 140,
+  STAMINA_REGEN: 1 / 230,
+  STAMINA_DELAY: 35,
+  STAMINA_MIN: 0.3,  // tükenince tekrar koşmak için gereken
   PLAYER_DAMP: 0.958,
   PLAYER_INVMASS: 0.5,
 
@@ -25,7 +30,9 @@ TP.C = {
   BALL_BOUNCE: 0.5,
   PLAYER_BOUNCE: 0.5,
 
-  KICK_RANGE: 4.5,
+  KICK_RANGE: 7,
+  KICK_BUFFER: 10,   // erken basılan şut bu kadar tick geçerli
+  AIM_ASSIST: 0.6,   // şut yönüne girdi yönünün katkısı
   KICK_BASE: 5.4,
   KICK_CHARGE_BONUS: 5.6,
   CHARGE_TIME: 55,  // tick'te tam şarj
@@ -43,8 +50,13 @@ TP.ABILITIES = {
   sok:    { name: 'Şok Dalgası', icon: '💥', cd: 8,   desc: 'Etrafındaki top ve rakibi güçlü bir dalgayla dışarı fırlatır.' },
   miknatis:{ name: 'Mıknatıs',   icon: '🧲', cd: 10,  desc: '1.6 saniye boyunca topu kendine çeker. Dripling ustası.' },
   dev:    { name: 'Dev Mod',     icon: '🦍', cd: 13,  desc: '5 saniye boyunca büyür ve ağırlaşırsın. Kaleyi kapat, rakibi ez.' },
+  buz:    { name: 'Buz',         icon: '🧊', cd: 10,  desc: 'Rakibi 2.5 saniye dondurur: yavaşlar, koşamaz, şut şarjı sıfırlanır.' },
+  isinlan:{ name: 'Işınlanma',   icon: '✨', cd: 9,   desc: 'Anında topun arkasına, rakip kaleye bakacak şekilde ışınlanırsın.' },
+  kalkan: { name: 'Kale Duvarı', icon: '🛡️', cd: 12,  desc: 'Kalenin önüne 4.5 saniyelik sağlam bir duvar dikersin.' },
 };
 TP.ABILITY_KEYS = Object.keys(TP.ABILITIES);
+TP.DECK_SIZE = 3;
+TP.randomDeck = function () { const k = TP.ABILITY_KEYS.slice().sort(() => Math.random() - 0.5); return k.slice(0, TP.DECK_SIZE); };
 
 TP.PATTERNS = [
   { id: 'duz', name: 'Düz' },
@@ -65,13 +77,34 @@ TP.EYES = [
   { id: 'uykulu', name: 'Uykulu' },
 ];
 
+TP.HAIRS = [
+  { id: 'yok', name: 'Kel' },
+  { id: 'kisa', name: 'Kısa' },
+  { id: 'diken', name: 'Diken' },
+  { id: 'ibik', name: 'İbik' },
+  { id: 'afro', name: 'Afro' },
+  { id: 'kase', name: 'Kâse' },
+  { id: 'atkuyrugu', name: 'At Kuyruğu' },
+  { id: 'uzun', name: 'Uzun' },
+];
+TP.HAIR_COLORS = ['#1b1b1b', '#4a2c17', '#8b5a2b', '#e8c14f', '#c0392b', '#d9d9d9', '#3a86ff', '#ff5d8f', '#06d6a0', '#7b2cbf'];
+TP.ACCS = [
+  { id: 'yok', name: 'Yok' },
+  { id: 'sapka', name: 'Şapka' },
+  { id: 'bandana', name: 'Bandana' },
+  { id: 'tac', name: 'Taç' },
+  { id: 'kulaklik', name: 'Kulaklık' },
+  { id: 'biyik', name: 'Bıyık' },
+  { id: 'yara', name: 'Yara Bandı' },
+];
+
 TP.SWATCHES = ['#e63946', '#f4a261', '#ffd23f', '#2a9d8f', '#06d6a0', '#118ab2', '#3a86ff', '#7b2cbf',
   '#ff5d8f', '#1d1d1d', '#f8f9fa', '#6c4f3d', '#8ac926', '#0b3d91', '#ff7b00', '#9aa5b1'];
 
 TP.defaultChar = function (i) {
   const presets = [
-    { name: 'Oyuncu 1', c1: '#e63946', c2: '#f8f9fa', pattern: 'dikey', number: 10, eyes: 'kizgin', ability: 'roket' },
-    { name: 'Oyuncu 2', c1: '#3a86ff', c2: '#ffd23f', pattern: 'halka', number: 7, eyes: 'normal', ability: 'atilma' },
+    { name: 'Oyuncu 1', c1: '#e63946', c2: '#f8f9fa', pattern: 'dikey', number: 10, eyes: 'kizgin', ability: 'roket', hair: 'diken', hairColor: '#1b1b1b', acc: 'yok' },
+    { name: 'Oyuncu 2', c1: '#3a86ff', c2: '#ffd23f', pattern: 'halka', number: 7, eyes: 'normal', ability: 'atilma', hair: 'kisa', hairColor: '#e8c14f', acc: 'bandana' },
   ];
   return Object.assign({}, presets[i % 2]);
 };
@@ -84,6 +117,7 @@ TP.randomChar = function (name) {
     name: name || r(['Robo', 'Bilye', 'Topçu', 'Fırtına', 'Kartal', 'Yumurcak']),
     c1, c2, pattern: r(TP.PATTERNS).id, number: 1 + Math.floor(Math.random() * 99),
     eyes: r(TP.EYES).id, ability: r(TP.ABILITY_KEYS),
+    hair: r(TP.HAIRS).id, hairColor: r(TP.HAIR_COLORS), acc: Math.random() < 0.5 ? 'yok' : r(TP.ACCS).id,
   };
 };
 
@@ -99,6 +133,9 @@ TP.sanitizeChar = function (c, i) {
     number: Math.max(0, Math.min(99, parseInt(c.number, 10) || 0)),
     eyes: TP.EYES.some(p => p.id === c.eyes) ? c.eyes : d.eyes,
     ability: TP.ABILITIES[c.ability] ? c.ability : d.ability,
+    hair: TP.HAIRS.some(p => p.id === c.hair) ? c.hair : d.hair,
+    hairColor: hex(c.hairColor, d.hairColor),
+    acc: TP.ACCS.some(p => p.id === c.acc) ? c.acc : d.acc,
   };
 };
 
