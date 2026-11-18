@@ -47,6 +47,7 @@
       kickReady: false, kickHeld: false, charge: 0, abHeld: false,
       cd: 0, cdMax: 1, rocket: 0, curve: 0, magnet: 0, giant: 0, dash: 0, stun: 0,
       ix: 0, iy: 0, stamina: 1, stDelay: 0, exhausted: false, sprinting: false, kickBuf: 0,
+      glove: 0, hold: 0,
     };
     drawCard(p);
     return p;
@@ -138,6 +139,7 @@
         const side = p.team === 0 ? -1 : 1;
         p.x = side * 200; p.y = 0; p.vx = 0; p.vy = 0;
         p.kickReady = false; p.charge = 0; p.dash = 0; p.stun = 0; p.magnet = 0; p.giant = 0; p.kickBuf = 0; p.slow = 0;
+        p.glove = 0; p.hold = 0;
         p.stamina = Math.max(p.stamina, 0.6); p.exhausted = false;
         p.r = C.PLAYER_R; p.invMass = C.PLAYER_INVMASS;
       });
@@ -155,18 +157,32 @@
       this.stats.abil[p.team]++;
       const extra = {};
       switch (used) {
-        case 'buz':
-          opp.slow = 150; opp.kickReady = false; opp.charge = 0;
-          extra.tx = opp.x; extra.ty = opp.y;
+        case 'buz': {
+          // yalnız menzildeki rakip donar; ıskalarsan kart boşa gider
+          const dx = opp.x - p.x, dy = opp.y - p.y, d = Math.hypot(dx, dy) || 1;
+          if (d <= C.BUZ_RANGE + opp.r) {
+            opp.slow = 150; opp.kickReady = false; opp.charge = 0;
+            extra.tx = opp.x; extra.ty = opp.y; extra.hit = 1;
+          } else {
+            extra.tx = p.x + dx / d * C.BUZ_RANGE; extra.ty = p.y + dy / d * C.BUZ_RANGE; extra.hit = 0;
+          }
           break;
+        }
         case 'isinlan': {
           const side = p.team === 0 ? 1 : -1; // hücum yönü
           let gx = side * (C.FW + 10) - b.x, gy = -b.y;
           const gl = Math.hypot(gx, gy) || 1; gx /= gl; gy /= gl;
           const dd = p.r + b.r + 8;
           extra.fx = p.x; extra.fy = p.y;
-          p.x = Math.max(-C.OW + p.r, Math.min(C.OW - p.r, b.x - gx * dd));
-          p.y = Math.max(-C.OH + p.r, Math.min(C.OH - p.r, b.y - gy * dd));
+          let tx = b.x - gx * dd, ty = b.y - gy * dd;
+          // hedef rakibin üstüne denk gelirse yanına kay (iç içe doğup savrulmasınlar)
+          const need = p.r + opp.r + 2, ox = tx - opp.x, oy = ty - opp.y, od = Math.hypot(ox, oy);
+          if (od < need) {
+            const ux = od > 0.01 ? ox / od : -gx, uy = od > 0.01 ? oy / od : -gy;
+            tx = opp.x + ux * need; ty = opp.y + uy * need;
+          }
+          p.x = Math.max(-C.OW + p.r, Math.min(C.OW - p.r, tx));
+          p.y = Math.max(-C.OH + p.r, Math.min(C.OH - p.r, ty));
           p.vx = gx * 1.5; p.vy = gy * 1.5;
           break;
         }
@@ -181,6 +197,7 @@
         case 'falso': p.curve = 300; break;
         case 'miknatis': p.magnet = 96; break;
         case 'dev': p.giant = 300; break;
+        case 'eldiven': p.glove = C.GLOVE_TIME; break;
         case 'atilma': {
           let dx = ax, dy = ay;
           let l = Math.hypot(dx, dy);
@@ -213,6 +230,8 @@
 
     kick(p) {
       const b = this.ball;
+      p.magnet = 0; // kendi şutunu geri çekip öldürmesin
+      if (p.hold > 0) { p.hold = 0; p.glove = 0; }
       const dx = b.x - p.x, dy = b.y - p.y;
       const d = Math.hypot(dx, dy) || 1;
       let nx = dx / d, ny = dy / d;
@@ -228,7 +247,7 @@
       const ch = p.charge;
       let s = C.KICK_BASE + C.KICK_CHARGE_BONUS * Math.pow(ch, 1.3);
       let kind = ch > 0.6 ? 'power' : 'kick';
-      if (p.giant > 0) s *= 1.12;
+      if (p.giant > 0) s *= C.GIANT_KICK;
       if (p.rocket > 0) {
         s = 13.5;
         b.vx = nx * s; b.vy = ny * s;
@@ -303,13 +322,17 @@
         if (p.stun > 0) p.stun--;
         if (p.slow > 0) p.slow--;
         if (p.giant > 0) p.giant--;
-        const tr = p.giant > 0 ? 25 : C.PLAYER_R;
+        if (p.glove > 0 && p.hold === 0) p.glove--;
+        const tr = p.giant > 0 ? C.GIANT_R : C.PLAYER_R;
         p.r += (tr - p.r) * 0.18;
-        p.invMass = p.giant > 0 ? 0.2 : C.PLAYER_INVMASS;
+        p.invMass = p.giant > 0 ? C.GIANT_INVMASS : C.PLAYER_INVMASS;
         if (p.magnet > 0) {
           p.magnet--;
-          const dx = p.x - b.x, dy = p.y - b.y, d = Math.hypot(dx, dy) || 1;
-          if (d < 180 && d > p.r + b.r + 1) {
+          // topu kendine değil, önündeki hücum noktasına çek (kendine çekince top kendi kalene doğru gidiyordu)
+          const atk = p.team === 0 ? 1 : -1;
+          const px = p.x + atk * (p.r + b.r + 6), py = p.y;
+          const dx = px - b.x, dy = py - b.y, d = Math.hypot(dx, dy) || 1;
+          if (d < 180 && d > 4) {
             const f = 0.26 * (1 - d / 200);
             b.vx += dx / d * f; b.vy += dy / d * f;
             b.vx *= 0.975; b.vy *= 0.975;
@@ -342,7 +365,7 @@
           const c = collideCircles(b, p, 0.3);
           if (c) {
             touch[p.team] = 1;
-            if (fireBefore && sp > 4) {
+            if (fireBefore && sp > 4 && !(p.glove > 0)) {
               p.vx -= c.nx * 7.5; p.vy -= c.ny * 7.5;
               p.stun = 40; p.kickReady = false; b.fire = 0;
               this.emit('burn', { x: p.x, y: p.y, team: p.team });
@@ -397,6 +420,25 @@
       if (postHit > 1.5) this.emit('post', { x: b.x, y: b.y, s: postHit });
       if (netHit > 1) this.emit('net', { x: b.x, y: b.y, s: netHit, side: Math.sign(b.x) });
       if (bump > 0) this.emit('bump', { x: (P[0].x + P[1].x) / 2, y: (P[0].y + P[1].y) / 2, s: bump });
+
+      // Kaleci eldiveni: kendi yarında topa değince kısa süre tut
+      for (const p of P) {
+        const atk = p.team === 0 ? 1 : -1; // hücum yönü
+        if (p.hold > 0) {
+          if (p.stun > 0 || this.phase !== 'play') { p.hold = 0; p.glove = 0; continue; }
+          p.hold--;
+          // top hep hücum yönünde önünde durur (kendi kalene sokamazsın), yukarı/aşağı ile kaydırılır
+          let fx = atk, fy = p.iy * 0.9;
+          const fl = Math.hypot(fx, fy); fx /= fl; fy /= fl;
+          const dd = p.r + b.r + 0.5;
+          b.x = p.x + fx * dd; b.y = p.y + fy * dd; b.vx = p.vx; b.vy = p.vy; b.spin = 0; b.fire = 0;
+          this.lastTouch = p.team;
+          if (p.hold === 0) { b.vx += fx * 2.5; b.vy += fy * 2.5; p.glove = 0; }
+        } else if (p.glove > 0 && touch[p.team] && this.phase === 'play' && atk * b.x < 20) {
+          p.hold = C.GLOVE_HOLD;
+          this.emit('catch', { x: b.x, y: b.y, team: p.team });
+        }
+      }
 
       // Şut
       for (const p of P) {
@@ -491,7 +533,7 @@
         b: [r(b.x), r(b.y), r(b.vx), r(b.vy), b.fire, r(b.spin * 1000), b.fireTeam],
         p: this.players.map(p => [r(p.x), r(p.y), r(p.vx), r(p.vy), r(p.r), p.kickReady ? 1 : 0, r(p.charge), p.cd, p.cdMax,
           p.rocket, p.curve, p.magnet, p.giant, p.dash, p.stun, Math.round(p.stamina * 100) / 100, (p.sprinting ? 1 : 0) | (p.exhausted ? 2 : 0), p.ability, p.next, p.slow,
-          p.kickHeld ? 1 : 0, p.abHeld ? 1 : 0, p.kickBuf, p.stDelay]),
+          p.kickHeld ? 1 : 0, p.abHeld ? 1 : 0, p.kickBuf, p.stDelay, p.glove, p.hold]),
         sh: this.shields.map(s => [s.team, Math.round(s.x), Math.round(s.y), s.r, s.t]),
         st: [this.stats.kicks, this.stats.power, this.stats.poss, this.stats.abil],
       };
@@ -510,6 +552,7 @@
         p.ability = a[17]; p.next = a[18]; p.slow = a[19];
         // misafirdeki tahmin bu durumdan ileri sardığı için tuş geçmişi de gerekli
         if (a.length > 20) { p.kickHeld = !!a[20]; p.abHeld = !!a[21]; p.kickBuf = a[22]; p.stDelay = a[23]; }
+        if (a.length > 24) { p.glove = a[24]; p.hold = a[25]; }
       });
       this.stats = { kicks: s.st[0], power: s.st[1], poss: s.st[2], abil: s.st[3] };
       this.shields = (s.sh || []).map(a => ({ team: a[0], x: a[1], y: a[2], r: a[3], t: a[4], invMass: 0, vx: 0, vy: 0 }));

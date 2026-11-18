@@ -1,6 +1,6 @@
 // TOPARLAK — sabitler, yetenekler, renkler
 window.TP = window.TP || {};
-TP.VERSION = 'v1.9 • 18.11.2026';
+TP.VERSION = 'v1.10 • 18.11.2026';
 
 TP.C = {
   TICK: 1 / 60,
@@ -38,6 +38,11 @@ TP.C = {
   KICK_CHARGE_BONUS: 5.6,
   CHARGE_TIME: 55,  // tick'te tam şarj
   KICK_RECOIL: 0.35,
+  // yetenek ayarları
+  BUZ_RANGE: 220,     // buzun etki menzili
+  GIANT_R: 27, GIANT_INVMASS: 0.12, GIANT_KICK: 1.25,
+  GLOVE_TIME: 180,    // eldivenin açık kaldığı tick
+  GLOVE_HOLD: 50,     // topu tutma süresi (tick)
 
   GOAL_PAUSE: 170,  // gol sonrası tick
   KICKOFF_FREEZE: 50,
@@ -49,11 +54,12 @@ TP.ABILITIES = {
   atilma: { name: 'Atılma',      icon: '💨', cd: 4.5, desc: 'Gittiğin yöne ani hız patlaması. Rakibe çarparsan onu itersin.' },
   falso:  { name: 'Falso',       icon: '🌀', cd: 7,   desc: 'Sonraki şutun kavis alır. Şut anında yana basarak falsonun yönünü seç.' },
   sok:    { name: 'Şok Dalgası', icon: '💥', cd: 8,   desc: 'Etrafındaki top ve rakibi güçlü bir dalgayla dışarı fırlatır.' },
-  miknatis:{ name: 'Mıknatıs',   icon: '🧲', cd: 10,  desc: '1.6 saniye boyunca topu kendine çeker. Dripling ustası.' },
+  miknatis:{ name: 'Mıknatıs',   icon: '🧲', cd: 10,  desc: '1.6 saniye boyunca topu ayağının önüne, hücum yönüne çeker. Dripling ustası.' },
   dev:    { name: 'Dev Mod',     icon: '🦍', cd: 13,  desc: '5 saniye boyunca büyür ve ağırlaşırsın. Kaleyi kapat, rakibi ez.' },
-  buz:    { name: 'Buz',         icon: '🧊', cd: 10,  desc: 'Rakibi 2.5 saniye dondurur: yavaşlar, koşamaz, şut şarjı sıfırlanır.' },
-  isinlan:{ name: 'Işınlanma',   icon: '✨', cd: 9,   desc: 'Anında topun arkasına, rakip kaleye bakacak şekilde ışınlanırsın.' },
+  buz:    { name: 'Buz',         icon: '🧊', cd: 10,  desc: 'Yakınındaki rakibi 2.5 saniye dondurur: yavaşlar, koşamaz, şut şarjı sıfırlanır. Uzaktaysa ıskalarsın.' },
+  isinlan:{ name: 'Işınlanma',   icon: '✨', cd: 11,  desc: 'Anında topun arkasına, rakip kaleye bakacak şekilde ışınlanırsın.' },
   kalkan: { name: 'Kale Duvarı', icon: '🛡️', cd: 12,  desc: 'Kalenin önüne 4.5 saniyelik sağlam bir duvar dikersin.' },
+  eldiven:{ name: 'Kaleci Eldiveni', icon: '🧤', cd: 11, desc: '3 saniye boyunca kendi yarı sahanda topa değersen onu kısa süre tutarsın, şutla bırakırsın. Roketleri de tutar.' },
 };
 TP.ABILITY_KEYS = Object.keys(TP.ABILITIES);
 TP.DECK_SIZE = 3;

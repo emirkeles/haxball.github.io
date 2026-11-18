@@ -660,6 +660,12 @@
           fx.text(e.x, e.y - 30, 'YORULDU', '#cfe8ff', 13);
           fx.burst(e.x, e.y - 10, 6, { dir: -Math.PI / 2, spread: 2, speed: 2, color: '#9fd8ff', life: 30, size: 2, grav: 0.08 });
           break;
+        case 'catch':
+          fx.ring(e.x, e.y, 8, 36, 16, '#ffe08a', 4);
+          fx.burst(e.x, e.y, 12, { speed: 3, color: ['#fff', '#ffe08a', tc(e.team)], life: 20, size: 2.2 });
+          fx.text(e.x, e.y - 30, 'TUTTU!', '#ffe08a', 18);
+          this.shakeBy(4);
+          break;
         case 'shieldhit':
           fx.ring(e.x, e.y, 6, 30, 14, '#ffffff', 3);
           fx.burst(e.x, e.y, 8, { speed: 3, color: ['#fff', tc(e.team)], life: 18, size: 2 });
@@ -680,6 +686,11 @@
               fx.burst(e.x, e.y, 18, { speed: 4, color: ['#fff', col], life: 26, size: 3 }); break;
             case 'miknatis': fx.ring(e.x, e.y, 170, 18, 30, '#7fd1ff', 4); break;
             case 'buz':
+              if (e.hit === 0) { // ıskaladı: menzili göster
+                fx.ring(e.x, e.y, 20, C.BUZ_RANGE, 22, '#bfe9ff', 3);
+                fx.text(e.tx, e.ty - 20, 'ISKA', '#bfe9ff', 14);
+                break;
+              }
               fx.ring(e.tx, e.ty, 60, 14, 26, '#bfe9ff', 6);
               fx.burst(e.tx, e.ty, 26, { speed: 4, color: ['#e8f7ff', '#9fd8ff', '#ffffff'], life: 34, size: 2.4, shape: 'r' });
               this.shakeBy(5); break;
@@ -690,6 +701,8 @@
               fx.burst(e.x, e.y, 22, { speed: 3, color: ['#fff', '#e0c3ff', col], life: 26, size: 2.5 }); break;
             case 'kalkan':
               this.shakeBy(6); break;
+            case 'eldiven':
+              fx.ring(e.x, e.y, 14, 48, 20, '#ffe08a', 4); break;
             default:
               fx.ring(e.x, e.y, 14, 44, 20, e.a === 'roket' ? '#ff9f1c' : '#b28dff', 4);
           }
@@ -1097,6 +1110,11 @@
         ctx.strokeStyle = Math.floor(this.time / 4) % 2 ? '#ff9f1c' : '#ff4d00'; ctx.lineWidth = 3; ctx.setLineDash([5, 4]);
         ctx.lineDashOffset = this.time; ctx.beginPath(); ctx.arc(0, 0, p.r + 12, 0, TAU); ctx.stroke(); ctx.setLineDash([]);
         if (Math.random() < 0.4) this.fx.add({ x: x + (Math.random() - 0.5) * p.r * 2, y: y + (Math.random() - 0.5) * p.r * 2, vx: 0, vy: -0.8, life: 16, max: 16, size: 2.5, color: ['#ff9f1c', '#ff4d00', '#ffd23f'][(Math.random() * 3) | 0], drag: 0.95, shape: 'g' });
+      }
+      if (p.glove > 0) { // eldiven açık: altın kesikli halka, tutarken dolu
+        ctx.strokeStyle = '#ffe08a'; ctx.lineWidth = p.hold > 0 ? 4 : 2.5;
+        if (!p.hold) { ctx.setLineDash([5, 5]); ctx.lineDashOffset = -this.time; }
+        ctx.beginPath(); ctx.arc(0, 0, p.r + 7, 0, TAU); ctx.stroke(); ctx.setLineDash([]);
       }
       if (p.curve > 0) {
         ctx.strokeStyle = '#b28dff'; ctx.lineWidth = 3;

@@ -128,7 +128,7 @@
     burn: ['{v} alevlerin içinde kaldı!', 'Roket {v}\'yi yerle bir etti!'],
     tired: ['{n} nefes nefese kaldı!', '{n} çok yoruldu, biraz dinlenmeli.'],
     ab: { dev: '{n} devleşti!', sok: '{n} şok dalgasıyla ortalığı dağıttı!', atilma: '{n} rüzgar gibi atıldı!', roket: '{n} roket şutu hazırlıyor!', falso: '{n} falsolu bir şey deneyecek…',
-      miknatis: '{n} topu kendine çekiyor!', buz: '{n} rakibini dondurdu!', isinlan: '{n} topun arkasına ışınlandı!', kalkan: '{n} kalesinin önüne duvar ördü!' },
+      miknatis: '{n} topu ayağına çekiyor!', buz: '{n} rakibini dondurdu!', isinlan: '{n} topun arkasına ışınlandı!', kalkan: '{n} kalesinin önüne duvar ördü!', eldiven: '{n} eldivenlerini giydi!' },
     overtime: ['Süre bitti, eşitlik! Altın gol zamanı!'],
     end: ['Ve maç bitti! {n} kazanıyor!', 'Son düdük! Zafer {n}\'nin!'],
   };
@@ -159,7 +159,9 @@
       case 'burn': A.burn(); spiker(fmtLine(pick(LINES.burn), { v: nm(e.team) }), 2500, true); break;
       case 'tired': spiker(fmtLine(pick(LINES.tired), { n: nm(e.team) })); break;
       case 'shieldhit': A.wall(6); break;
-      case 'ab': A.ability(e.a); if (LINES.ab[e.a]) spiker(fmtLine(LINES.ab[e.a], { n: nm(e.team) })); break;
+      case 'catch': A.wall(4); if (Math.random() < 0.5) spiker(fmtLine('{n} topu kucakladı!', { n: nm(e.team) })); break;
+      case 'ab': A.ability(e.a); if (e.a === 'buz' && e.hit === 0) spiker(fmtLine('{n} ıskaladı, buz boşa gitti!', { n: nm(e.team) }));
+        else if (LINES.ab[e.a]) spiker(fmtLine(LINES.ab[e.a], { n: nm(e.team) })); break;
       case 'whistle': A.whistle(false); centerText('BAŞLA!', 650, true); break;
       case 'goal': {
         A.goal(); slowT = 0.6; goalBanner(e);
@@ -219,7 +221,7 @@
         if (swap) { card.classList.remove('swap'); void card.offsetWidth; card.classList.add('swap'); }
       }
       if (hud.next[i] !== p.next) { hud.next[i] = p.next; card.querySelector('.ab-next').textContent = p.next && TP.ABILITIES[p.next] ? TP.ABILITIES[p.next].icon : ''; }
-      const armed = p.rocket > 0 || p.curve > 0 || p.magnet > 0 || p.giant > 0;
+      const armed = p.rocket > 0 || p.curve > 0 || p.magnet > 0 || p.giant > 0 || p.glove > 0;
       const cls = armed ? 'armed' : p.cd > 0 ? 'cool' : 'ready';
       if (hud.cls[i] !== cls) { card.classList.remove('armed', 'cool', 'ready'); card.classList.add(cls); hud.cls[i] = cls; }
       card.querySelector('.ab-fill').style.width = (p.cd > 0 ? (1 - p.cd / p.cdMax) * 100 : 100) + '%';
@@ -448,7 +450,7 @@
 
   // ---------- KART SEÇİMİ ----------
   const CARD_COLORS = { roket: ['#ff7b00', '#7a1e00'], atilma: ['#9aa5b1', '#2b3748'], falso: ['#9b5de5', '#3c1a6e'], sok: ['#f8f9fa', '#5c677d'], miknatis: ['#3a86ff', '#0b3d91'],
-    dev: ['#8ac926', '#2d5016'], buz: ['#a2d2ff', '#1d4e89'], isinlan: ['#e0c3ff', '#5a189a'], kalkan: ['#ffd23f', '#7a5c00'] };
+    dev: ['#8ac926', '#2d5016'], buz: ['#a2d2ff', '#1d4e89'], isinlan: ['#e0c3ff', '#5a189a'], kalkan: ['#ffd23f', '#7a5c00'], eldiven: ['#ffe08a', '#8a5a00'] };
   let draft = null;
   // players: [{idx, ch, slot}], online: true ise süre sınırı ve bekleme
   function openDraft(players, onDone, online) {

@@ -88,9 +88,10 @@
         else if (a === 'sok' && dOpp < 90 && Math.hypot(opp.x - b.x, opp.y - b.y) < 60) this.out.ab = true;
         else if (a === 'miknatis' && dB < 150 && dB > 50 && dO < dB) this.out.ab = true;
         else if (a === 'dev' && (defend || dOpp < 70)) this.out.ab = true;
-        else if (a === 'buz' && dO < dB && dO < 80) this.out.ab = true;
+        else if (a === 'buz' && dO < dB && dO < 80 && dOpp < C.BUZ_RANGE) this.out.ab = true;
         else if (a === 'isinlan' && (wrongSide || dB > 220) && !defend) this.out.ab = true;
         else if (a === 'kalkan' && Math.abs(ownX - b.x) < 200 && b.vx * side > 1.5) this.out.ab = true;
+        else if (a === 'eldiven' && side * b.x > 0 && b.vx * side > 1 && dB < 160) this.out.ab = true;
       }
       return this.out;
     }
