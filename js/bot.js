@@ -7,7 +7,7 @@
       const L = { kolay: { speed: 0.62, react: 14, aim: 0.55, ab: 0.004 }, orta: { speed: 0.85, react: 7, aim: 0.75, ab: 0.012 }, zor: { speed: 1, react: 2, aim: 0.88, ab: 0.03 } };
       this.cfg = L[this.level] || L.orta;
       this.out = { x: 0, y: 0, kick: false, ab: false, sp: false };
-      this.t = 0; this.kickHold = 0; this.mode = 'atk';
+      this.t = 0; this.kickHold = 0; this.mode = 'atk'; this.holding = false; this.held = 0; this.holdTarget = 0; this.tackling = false;
       this.wobble = Math.random() * 10;
     }
 
@@ -69,12 +69,20 @@
       const align = (toBx / tl) * gx + (toBy / tl) * gy;
       const close = tl - me.r - b.r < 22;
       const distGoal = Math.abs(goalX - b.x);
-      if (this.kickHold > 0) { this.kickHold--; this.out.kick = true; }
-      else if (close && (align > cfg.aim || (defend && align > -0.2))) {
-        this.out.kick = true;
-        this.kickHold = distGoal > 260 && Math.random() < 0.5 ? 30 : 4;
+      const inRange = tl - me.r - b.r < C.KICK_RANGE + 1;
+      const dOppNow = Math.hypot(opp.x - me.x, opp.y - me.y);
+      // Şut tuşu bırakınca vurur: bas, (gerekirse şarj et), topa değince bırak
+      if (this.holding) {
+        this.held += cfg.react;
+        const ready = this.held >= this.holdTarget;
+        if ((ready && inRange && (align > cfg.aim - 0.2 || defend)) || this.held > 100 || this.tackling) { this.out.kick = false; this.holding = false; this.tackling = false; }
+        else this.out.kick = true;
+      } else if (close && (align > cfg.aim || (defend && align > -0.2))) {
+        this.holding = true; this.held = 0; this.holdTarget = distGoal > 260 && Math.random() < 0.5 ? 45 : 1; this.out.kick = true;
       } else if (!close && distGoal < 380 && align > 0.85 && tl < 90 && Math.random() < 0.1) {
-        this.out.kick = true; this.kickHold = 25; // şarj ederek yaklaş
+        this.holding = true; this.held = 0; this.holdTarget = 40; this.out.kick = true; // şarj ederek yaklaş
+      } else if (!close && dOppNow < me.r + opp.r + 9 && Math.random() < 0.25 * cfg.speed) {
+        this.holding = true; this.held = 0; this.holdTarget = 0; this.tackling = true; this.out.kick = true; // rakibe vur
       } else this.out.kick = false;
 
       // Yetenek
@@ -91,6 +99,15 @@
         else if (a === 'buz' && dO < dB && dO < 80) this.out.ab = true;
         else if (a === 'isinlan' && (wrongSide || dB > 220) && !defend) this.out.ab = true;
         else if (a === 'kalkan' && Math.abs(ownX - b.x) < 200 && b.vx * side > 1.5) this.out.ab = true;
+        else if (a === 'hayalet' && dOpp < 60 && dB < 120) this.out.ab = true;
+        else if (a === 'turbo' && dB > 160) this.out.ab = true;
+        else if ((a === 'kucult' || a === 'ters') && dOpp < 160 && dO < dB + 40) this.out.ab = true;
+        else if (a === 'bomba' && Math.hypot(opp.x - b.x, opp.y - b.y) < 70 && dB > 60) this.out.ab = true;
+        else if (a === 'mayin' && (defend || Math.abs(ownX - me.x) < 220)) this.out.ab = true;
+        else if (a === 'ruzgar' && side * b.x < 0 && Math.abs(goalX - b.x) < 420) this.out.ab = true;
+        else if (a === 'lastik' && close) this.out.ab = true;
+        else if (a === 'cagir' && dB > 180 && dO < dB) this.out.ab = true;
+        else if (a === 'sis' && close && distGoal < 400) this.out.ab = true;
       }
       return this.out;
     }

@@ -71,7 +71,11 @@
         const g = readPad(pads()[padIndex]);
         if (g) { if (g.x || g.y) { x = g.x; y = g.y; } kick = kick || g.kick; ab = ab || g.ab; sp = sp || g.sp; }
       }
-      return { x, y, kick, ab, sp };
+      // emoji: tek oyunculu/P1 için 1-4, P2 için 7-0
+      const ek = scheme === 'p2' ? ['Digit7', 'Digit8', 'Digit9', 'Digit0'] : ['Digit1', 'Digit2', 'Digit3', 'Digit4'];
+      let emo = 0;
+      for (let i = 0; i < 4; i++) if (keys.has(ek[i])) { emo = i + 1; break; }
+      return { x, y, kick, ab, sp, emo };
     },
     label(scheme, action, n) { return binds[scheme][action].slice(0, n || 2).map(keyName).join(' / '); },
     capture(fn) { capture = fn; },

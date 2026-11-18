@@ -152,9 +152,27 @@
         case 'dev': tone('sawtooth', 60, 30, 0.7, 0.25); tone('sine', 110, 55, 0.7, 0.5); break;
         case 'buz': for (const f of [1800, 2400, 3100]) tone('sine', f, f * 1.02, 0.5, 0.06); noise(0.35, 'highpass', 4000, 0.8, 0.2); break;
         case 'isinlan': tone('sine', 1500, 200, 0.25, 0.15); tone('triangle', 200, 1600, 0.25, 0.1, ctx && ctx.currentTime + 0.12); break;
+        case 'hayalet': tone('sine', 600, 200, 0.6, 0.12); tone('sine', 900, 300, 0.6, 0.06); break;
+        case 'turbo': tone('sawtooth', 100, 400, 0.4, 0.15); noise(0.4, 'bandpass', 2000, 1, 0.3); break;
+        case 'kucult': tone('sine', 900, 1800, 0.3, 0.15); break;
+        case 'ters': tone('square', 400, 200, 0.15, 0.08); tone('square', 200, 400, 0.15, 0.08, ctx && ctx.currentTime + 0.15); break;
+        case 'bomba': tone('square', 880, 880, 0.08, 0.1); tone('square', 880, 880, 0.08, 0.1, ctx && ctx.currentTime + 0.25); break;
+        case 'mayin': tone('triangle', 200, 120, 0.2, 0.2); break;
+        case 'ruzgar': noise(1.2, 'bandpass', 600, 0.5, 0.5, 0, 0.2); break;
+        case 'lastik': tone('sine', 200, 600, 0.25, 0.25); break;
+        case 'cagir': tone('sine', 300, 1500, 0.3, 0.15); tone('triangle', 1500, 1500, 0.2, 0.06, ctx && ctx.currentTime + 0.25); break;
+        case 'sis': noise(0.9, 'lowpass', 500, 0.5, 0.4, 0, 0.1); break;
         case 'kalkan': tone('square', 150, 150, 0.2, 0.08); tone('sine', 300, 600, 0.3, 0.2); noise(0.2, 'lowpass', 800, 1, 0.3); break;
       }
     },
+    boom(big) { tone('sine', 90, 25, big ? 1.1 : 0.7, 1); noise(big ? 1.2 : 0.7, 'lowpass', 700, 0.7, 0.9, 0, 0.005); noise(0.15, 'highpass', 2000, 0.7, 0.4); roar(0.7, 2); },
+    hit(n) { tone('square', 300 + n * 120, 150, 0.08, 0.12); },
+    dizzy() { for (let i = 0; i < 4; i++) tone('sine', 1200 - i * 150, 900 - i * 150, 0.12, 0.12, ctx && ctx.currentTime + i * 0.09); },
+    tackle() { tone('sine', 160, 50, 0.18, 0.8); noise(0.08, 'bandpass', 1200, 1, 0.5); },
+    smack(s) { tone('sine', 200, 40, 0.3, 1); noise(0.12, 'bandpass', 1500, 0.8, 0.7); },
+    slam(s) { tone('sine', 120, 40, 0.25, Math.min(0.9, 0.3 + s * 0.05)); noise(0.2, 'lowpass', 600, 1, 0.5); },
+    pickup() { [660, 880, 1320].forEach((f, i) => tone('sine', f, f, 0.15, 0.15, ctx && ctx.currentTime + i * 0.07)); },
+    pop() { tone('sine', 500, 900, 0.08, 0.12); },
     ui() { tone('sine', 880, 660, 0.08, 0.12); },
     uiOk() { tone('sine', 660, 990, 0.12, 0.14); },
     tick() { tone('sine', 1000, 1000, 0.06, 0.12); },

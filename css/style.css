@@ -270,3 +270,9 @@ select:focus, input:focus { border-color: var(--yellow); }
 #netBanner { position: fixed; top: 84px; left: 50%; transform: translateX(-50%); z-index: 55; background: rgba(10,14,20,0.94); border: 2px solid var(--yellow); color: #fff;
   font-weight: 800; padding: 10px 18px; border-radius: 12px; display: flex; align-items: center; gap: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
 #netBanner .spinner { width: 22px; height: 22px; border-width: 3px; margin: 0; }
+#replayTag { position: fixed; top: 86px; left: 18px; z-index: 6; display: none; background: #e63946; color: #fff; font-weight: 900; letter-spacing: 2px; padding: 6px 12px; border-radius: 8px; font-size: 15px; }
+#replayTag small { font-weight: 600; letter-spacing: 0; opacity: 0.8; margin-left: 6px; font-size: 11px; }
+body.replay #replayTag { display: block; animation: readyPulse 1s infinite; }
+body.replay::before, body.replay::after { content: ''; position: fixed; left: 0; right: 0; height: 7vh; background: #000; z-index: 4; pointer-events: none; }
+body.replay::before { top: 0; } body.replay::after { bottom: 0; }
+body.replay #goalBanner { opacity: 0 !important; }

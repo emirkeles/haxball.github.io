@@ -1,6 +1,6 @@
 // TOPARLAK — sabitler, yetenekler, renkler
 window.TP = window.TP || {};
-TP.VERSION = 'v1.9 • 18.11.2026';
+TP.VERSION = 'v2.0 • 18.11.2026';
 
 TP.C = {
   TICK: 1 / 60,
@@ -32,20 +32,20 @@ TP.C = {
   PLAYER_BOUNCE: 0.5,
 
   KICK_RANGE: 7,
-  KICK_BUFFER: 10,   // erken basılan şut bu kadar tick geçerli
+  KICK_BUFFER: 12,   // tuşu bıraktıktan sonra şutun geçerli kaldığı tick
   AIM_ASSIST: 0.6,   // şut yönüne girdi yönünün katkısı
   KICK_BASE: 5.4,
   KICK_CHARGE_BONUS: 5.6,
   CHARGE_TIME: 55,  // tick'te tam şarj
   KICK_RECOIL: 0.35,
 
-  GOAL_PAUSE: 170,  // gol sonrası tick
+  GOAL_PAUSE: 330,  // gol sonrası tick (tekrar dahil)
   KICKOFF_FREEZE: 50,
 };
 
 // Yetenekler
 TP.ABILITIES = {
-  roket:  { name: 'Roket Şut',   icon: '🚀', cd: 9.5, desc: 'Sonraki şutun alev alır: çok hızlı gider, rakibe çarparsa onu savurur ve sersemletir.' },
+  roket:  { name: 'Roket Şut',   icon: '🚀', cd: 9.5, desc: 'Sonraki şutun alev alır: füze gibi gider. Rakibe çarparsa onu havaya uçurur, belki kalesine kadar!' },
   atilma: { name: 'Atılma',      icon: '💨', cd: 4.5, desc: 'Gittiğin yöne ani hız patlaması. Rakibe çarparsan onu itersin.' },
   falso:  { name: 'Falso',       icon: '🌀', cd: 7,   desc: 'Sonraki şutun kavis alır. Şut anında yana basarak falsonun yönünü seç.' },
   sok:    { name: 'Şok Dalgası', icon: '💥', cd: 8,   desc: 'Etrafındaki top ve rakibi güçlü bir dalgayla dışarı fırlatır.' },
@@ -54,8 +54,20 @@ TP.ABILITIES = {
   buz:    { name: 'Buz',         icon: '🧊', cd: 10,  desc: 'Rakibi 2.5 saniye dondurur: yavaşlar, koşamaz, şut şarjı sıfırlanır.' },
   isinlan:{ name: 'Işınlanma',   icon: '✨', cd: 9,   desc: 'Anında topun arkasına, rakip kaleye bakacak şekilde ışınlanırsın.' },
   kalkan: { name: 'Kale Duvarı', icon: '🛡️', cd: 12,  desc: 'Kalenin önüne 4.5 saniyelik sağlam bir duvar dikersin.' },
+  hayalet:{ name: 'Hayalet',     icon: '👻', cd: 9,   desc: '3.3 saniye boyunca rakibin içinden geçersin. Mayınlara da basmazsın.' },
+  turbo:  { name: 'Turbo',       icon: '⚡', cd: 11,  desc: '4 saniye boyunca çok hızlısın ve koşu barın hiç azalmaz.' },
+  kucult: { name: 'Küçült',      icon: '🐜', cd: 11,  desc: 'Rakibi 5 saniye minicik yapar: yavaş itilir, şutları zayıf.' },
+  ters:   { name: 'Ters Kontrol',icon: '🔄', cd: 12,  desc: 'Rakibin tuşları 3 saniye ters çalışır. Sola basan sağa gider!' },
+  bomba:  { name: 'Bomba Top',   icon: '💣', cd: 10,  desc: 'Top 1.7 saniye sonra patlar: yakındakiler savrulur, rakip sersemler.' },
+  mayin:  { name: 'Mayın',       icon: '🧨', cd: 7,   desc: 'Bulunduğun yere mayın bırakırsın (en fazla 2). Rakip basarsa havaya uçar.' },
+  ruzgar: { name: 'Rüzgar',      icon: '🌪️', cd: 10,  desc: '3.5 saniye boyunca top ve rakip, rakip kaleye doğru rüzgarla itilir.' },
+  lastik: { name: 'Lastik Top',  icon: '🏀', cd: 9,   desc: '7 saniye boyunca top duvarlardan fırlar ve neredeyse hiç yavaşlamaz.' },
+  cagir:  { name: 'Topu Çağır',  icon: '🪄', cd: 14,  desc: 'Top nerede olursa olsun anında ayağının önüne gelir.' },
+  sis:    { name: 'Sis',         icon: '🌫️', cd: 9,   desc: 'Top 2.8 saniye boyunca neredeyse görünmez olur. Kafalar karışsın!' },
 };
 TP.ABILITY_KEYS = Object.keys(TP.ABILITIES);
+TP.EMOTES = ['', '😂', '🔥', '😡', '👍'];
+TP.THEMES = [{ id: 'rastgele', name: 'Rastgele' }, { id: 'gunduz', name: 'Gündüz' }, { id: 'aksam', name: 'Akşam' }, { id: 'gece', name: 'Gece' }, { id: 'kar', name: 'Karlı' }];
 TP.DECK_SIZE = 3;
 TP.randomDeck = function () { const k = TP.ABILITY_KEYS.slice().sort(() => Math.random() - 0.5); return k.slice(0, TP.DECK_SIZE); };
 

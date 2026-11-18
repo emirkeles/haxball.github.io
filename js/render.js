@@ -11,6 +11,7 @@
   }
   function lum(h) { const [r, g, b] = hexToRgb(h); return (0.299 * r + 0.587 * g + 0.114 * b) / 255; }
   function rgba(h, a) { const [r, g, b] = hexToRgb(h); return `rgba(${r},${g},${b},${a})`; }
+  function pickW(a) { return a[(Math.random() * a.length) | 0]; }
   function rng(seed) { let s = seed; return () => (s = (s * 16807) % 2147483647) / 2147483647; }
 
   // =====================================================================
@@ -363,7 +364,7 @@
   // =====================================================================
   const PEN_D = 112, PEN_H = 142, BOX_D = 38, BOX_H = C.GH + 26, SPOT_D = 80, ARC_R = 58, CORNER_R = 11;
 
-  function makePitch(scale) {
+  function makePitch(scale, theme) {
     const { FW, FH, OW, OH, GH, GD, CENTER_R } = C;
     const W = 2 * OW, H = 2 * OH;
     const cv = document.createElement('canvas');
@@ -376,8 +377,8 @@
     // Biçilmiş çim: dikey şeritler x yatay bantlar (dama)
     const cols = 16, rows = 8;
     const sw = 2 * FW / cols * 1, sh = 2 * FH / rows;
-    const base = ['#3e9a3f', '#459f45', '#3a9139', '#41983f'];
-    g.fillStyle = '#3c9440'; g.fillRect(-OW, -OH, W, H);
+    const base = theme === 'kar' ? ['#7fae86', '#88b78e', '#78a67f', '#83b289'] : ['#3e9a3f', '#459f45', '#3a9139', '#41983f'];
+    g.fillStyle = base[0]; g.fillRect(-OW, -OH, W, H);
     for (let i = -Math.ceil(OW / sw) - 1; i < Math.ceil(OW / sw) + 1; i++) {
       for (let j = -Math.ceil(OH / sh) - 1; j < Math.ceil(OH / sh) + 1; j++) {
         const k = ((i & 1) ? 1 : 0) + ((j & 1) ? 2 : 0);
@@ -400,6 +401,16 @@
       rg.addColorStop(1, 'rgba(0,0,0,0)');
       g.fillStyle = rg; g.fillRect(x - r, y - r, 2 * r, 2 * r);
     }
+    // kar örtüsü
+    if (theme === 'kar') {
+      for (let i = 0; i < 160; i++) {
+        const x = -OW + rnd() * W, y = -OH + rnd() * H, r = 15 + rnd() * 70;
+        const rg = g.createRadialGradient(x, y, 0, x, y, r);
+        rg.addColorStop(0, 'rgba(250,252,255,0.55)'); rg.addColorStop(1, 'rgba(250,252,255,0)');
+        g.fillStyle = rg; g.fillRect(x - r, y - r, 2 * r, 2 * r);
+      }
+      for (let i = 0; i < W * H / 30; i++) { g.fillStyle = 'rgba(255,255,255,0.35)'; g.fillRect(-OW + rnd() * W, -OH + rnd() * H, 1.4, 1.4); }
+    }
     // aşınma: kale ağızları, penaltı noktaları, orta nokta
     const wear = (x, y, rx, ry, n, a) => {
       for (let i = 0; i < n; i++) {
@@ -418,14 +429,14 @@
     // Çizgiler — boya dokulu
     const line = (fn, w) => {
       g.save();
-      g.strokeStyle = 'rgba(255,255,255,0.92)'; g.lineWidth = w || 3; g.lineCap = 'butt'; g.lineJoin = 'miter';
+      g.strokeStyle = theme === 'kar' ? 'rgba(30,90,200,0.9)' : 'rgba(255,255,255,0.92)'; g.lineWidth = w || 3; g.lineCap = 'butt'; g.lineJoin = 'miter';
       g.beginPath(); fn(); g.stroke();
       g.restore();
     };
     line(() => g.rect(-FW, -FH, 2 * FW, 2 * FH));
     line(() => { g.moveTo(0, -FH); g.lineTo(0, FH); });
     line(() => g.arc(0, 0, CENTER_R, 0, TAU));
-    g.fillStyle = 'rgba(255,255,255,0.95)';
+    g.fillStyle = theme === 'kar' ? 'rgba(30,90,200,0.95)' : 'rgba(255,255,255,0.95)';
     g.beginPath(); g.arc(0, 0, 3.5, 0, TAU); g.fill();
     const arcA = Math.acos((PEN_D - SPOT_D) / ARC_R);
     for (const sx of [-1, 1]) {
@@ -545,13 +556,18 @@
       this.ghosts = []; this.celebrate = null;
       this.crowd = null; this.teamColors = ['#e63946', '#3a86ff'];
       this.pitch = null; this.stadium = null; this.bakedScale = 0;
-      this.boardOffset = 0;
+      this.boardOffset = 0; this.theme = 'gunduz'; this.emotes = [null, null]; this.flyAng = [0, 0];
       this.resize();
+    }
+
+    setTheme(t) {
+      if (t === this.theme && this.pitch) return;
+      this.theme = t; this.bakedScale = 0; this.resize();
     }
 
     reset() {
       this.fx = new FX(); this.ghosts = []; this.confettiT = 0; this.hype = 0; this.shake = 0; this.flash = 0; this.zoomPunch = 0;
-      this.celebrate = null; this.ballZ = 0; this.ballVZ = 0;
+      this.celebrate = null; this.ballZ = 0; this.ballVZ = 0; this.emotes = [null, null];
     }
 
     setTeams(chars) {
@@ -570,7 +586,7 @@
       const gs = Math.min(2.5, Math.max(1, this.scale * dpr));
       if (!this.pitch || Math.abs(gs - this.bakedScale) > 0.2) {
         this.bakedScale = gs;
-        this.pitch = makePitch(gs);
+        this.pitch = makePitch(gs, this.theme);
         this.stadium = makeStadium(Math.min(2, gs));
       }
     }
@@ -653,8 +669,9 @@
           break;
         case 'burn':
           fx.burst(e.x, e.y, 30, { speed: 5, color: ['#ffef99', '#ff9f1c', '#ff4d00', '#333'], life: 34, size: 3 });
-          fx.text(e.x, e.y - 30, 'YANDI!', '#ff9f1c', 22);
-          this.shakeBy(12); this.flash = 0.25;
+          fx.text(e.x, e.y - 30, pickW(['UÇTU!', 'YANDI!', 'FÜZE!']), '#ff9f1c', 26);
+          fx.ring(e.x, e.y, 10, 100, 24, '#ff9f1c', 9);
+          this.shakeBy(24); this.flash = 0.5; this.zoomPunch = Math.max(this.zoomPunch, 0.06);
           break;
         case 'tired':
           fx.text(e.x, e.y - 30, 'YORULDU', '#cfe8ff', 13);
@@ -690,6 +707,18 @@
               fx.burst(e.x, e.y, 22, { speed: 3, color: ['#fff', '#e0c3ff', col], life: 26, size: 2.5 }); break;
             case 'kalkan':
               this.shakeBy(6); break;
+            case 'ters':
+              fx.ring(e.tx, e.ty, 50, 10, 24, '#ff5d8f', 5);
+              fx.text(e.tx, e.ty - 36, '?!', '#ff5d8f', 24); break;
+            case 'cagir':
+              fx.burst(e.fx, e.fy, 18, { speed: 3, color: ['#fff', '#e0c3ff'], life: 24, size: 2.5 });
+              fx.ring(e.x, e.y, 40, 6, 18, '#e0c3ff', 4); break;
+            case 'turbo':
+              fx.ring(e.x, e.y, 10, 60, 18, '#ffd23f', 5); this.shakeBy(4); break;
+            case 'ruzgar':
+              fx.ring(e.x, e.y, 10, 90, 22, '#cfe8ff', 5); break;
+            case 'sis':
+              fx.burst(e.x, e.y, 30, { speed: 3, color: ['rgba(220,225,230,0.7)', 'rgba(200,205,210,0.6)'], life: 60, size: 10, drag: 0.95, shape: 'g' }); break;
             default:
               fx.ring(e.x, e.y, 14, 44, 20, e.a === 'roket' ? '#ff9f1c' : '#b28dff', 4);
           }
@@ -711,6 +740,60 @@
         }
         case 'kickoff':
           this.hype = Math.max(this.hype, 0.2); this.celebrate = null;
+          break;
+        case 'hit':
+          fx.burst(e.x, e.y, 8, { speed: 3, color: ['#fff', '#ffd23f'], life: 16, size: 2 });
+          fx.text(e.x, e.y - 28, '●'.repeat(e.n) + '○'.repeat(Math.max(0, 3 - e.n)), '#ffd23f', 13);
+          this.shakeBy(2.5);
+          break;
+        case 'dizzy':
+          fx.ring(e.x, e.y, 10, 70, 26, '#ffd23f', 6);
+          fx.burst(e.x, e.y, 20, { speed: 4, color: ['#ffd23f', '#fff'], life: 30, size: 3, shape: 'r' });
+          fx.text(e.x, e.y - 36, 'SERSEMLEDİ!', '#ffd23f', 20);
+          this.shakeBy(10); this.flash = 0.2;
+          break;
+        case 'tackle':
+          fx.burst(e.x, e.y, 14, { speed: 4.5, color: ['#fff', '#ddd', '#ffd23f'], life: 18, size: 2.5 });
+          fx.ring(e.x, e.y, 8, 38, 12, '#ffffff', 4);
+          fx.text(e.x, e.y - 22, pickW(['PAT!', 'GÜM!', 'TOK!', 'ÇAT!']), '#fff', 17);
+          this.shakeBy(7);
+          break;
+        case 'smack':
+          fx.burst(e.x, e.y, 20, { speed: 5, color: ['#fff', '#ffd23f', '#ff9f1c'], life: 22, size: 3 });
+          fx.ring(e.x, e.y, 10, 55, 16, '#fff', 6);
+          fx.text(e.x, e.y - 30, pickW(['ÇAAT!', 'BAM!', 'KÜT!']), '#ffd23f', 20);
+          this.shakeBy(Math.min(16, e.s)); this.zoomPunch = Math.max(this.zoomPunch, 0.03);
+          break;
+        case 'slam':
+          fx.burst(e.x, e.y, 14, { speed: 3.5, color: ['#fff', '#cfd8dc', '#8d99ae'], life: 22, size: 2.5 });
+          fx.ring(e.x, e.y, 6, 34, 14, '#ffffff', 4);
+          this.shakeBy(Math.min(14, e.s * 1.2));
+          break;
+        case 'intogoal':
+          fx.burst(e.x, e.y, 40, { speed: 6, color: ['#fff', '#ffd23f', this.teamColors[1 - e.team]], life: 50, size: 3.5, shape: 'r', vz: 4 });
+          fx.text(e.x, e.y - 40, 'KALEYE GÖMÜLDÜ!', '#fff', 22);
+          this.netWobble[e.x < 0 ? 0 : 1] = [24, e.y, 0];
+          this.shakeBy(16); this.hype = Math.max(this.hype, 0.8); this.hypeTeam = 1 - e.team;
+          break;
+        case 'mine':
+        case 'boom': {
+          const big = e.k === 'boom';
+          fx.ring(e.x, e.y, 10, big ? 170 : 90, 30, '#ffffff', big ? 12 : 8);
+          fx.ring(e.x, e.y, 10, big ? 150 : 80, 36, '#ff9f1c', big ? 8 : 6);
+          fx.burst(e.x, e.y, big ? 60 : 36, { speed: big ? 8 : 6, color: ['#ffef99', '#ff9f1c', '#ff4d00', '#333', '#666'], life: 40, size: 4, vz: 4 });
+          fx.burst(e.x, e.y, 20, { speed: 2, color: ['rgba(60,60,60,0.6)', 'rgba(90,90,90,0.5)'], life: 70, size: 9, drag: 0.95, shape: 'g' });
+          fx.text(e.x, e.y - 40, big ? 'BOOOM!' : 'MAYIN!', '#ff9f1c', big ? 30 : 22);
+          this.shakeBy(big ? 26 : 18); this.flash = big ? 0.6 : 0.4; this.zoomPunch = Math.max(this.zoomPunch, big ? 0.06 : 0.04);
+          break;
+        }
+        case 'pickspawn': break;
+        case 'pickup':
+          fx.ring(e.x, e.y, 6, 60, 24, '#7fd1ff', 6);
+          fx.burst(e.x, e.y, 26, { speed: 4, color: ['#7fd1ff', '#ffffff', '#ffd23f'], life: 30, size: 2.5, shape: 'r' });
+          fx.text(e.x, e.y - 30, 'ENERJİ!', '#7fd1ff', 18);
+          break;
+        case 'emote':
+          this.emotes[e.team] = { e: e.e, t: 100 };
           break;
         case 'end':
           this.hype = 1; this.hypeTeam = e.winner;
@@ -793,6 +876,36 @@
       ctx.fillStyle = `rgba(0,0,0,${0.26 - Math.min(0.12, z * 0.008)})`;
       ctx.beginPath(); ctx.ellipse(bx + 3 + z * 0.7, by + 5 + z * 0.5, b.r * (1 - Math.min(0.3, z * 0.015)), b.r * 0.85 * (1 - Math.min(0.3, z * 0.015)), 0, 0, TAU); ctx.fill();
 
+      // mayınlar
+      if (sim.mines) for (const m of sim.mines) {
+        const col = this.teamColors[m.team];
+        ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.beginPath(); ctx.ellipse(m.x + 2, m.y + 3, 9, 7, 0, 0, TAU); ctx.fill();
+        ctx.fillStyle = '#2b2d42'; ctx.strokeStyle = col; ctx.lineWidth = 2.5;
+        ctx.beginPath(); ctx.arc(m.x, m.y, 8, 0, TAU); ctx.fill(); ctx.stroke();
+        const blink = m.arm > 0 ? 0.3 : (Math.floor(this.time / (m.t < 120 ? 4 : 12)) % 2 ? 1 : 0.25);
+        ctx.fillStyle = m.arm > 0 ? '#999' : `rgba(255,60,60,${blink})`;
+        ctx.beginPath(); ctx.arc(m.x, m.y, 3, 0, TAU); ctx.fill();
+      }
+      // enerji küreleri
+      if (sim.pickups) for (const k of sim.pickups) {
+        const bob = Math.sin(this.time * 0.1) * 3, rot = this.time * 0.05;
+        ctx.fillStyle = 'rgba(0,0,0,0.25)'; ctx.beginPath(); ctx.ellipse(k.x + 3, k.y + 8, 10, 6, 0, 0, TAU); ctx.fill();
+        if (k.t < 120 && Math.floor(this.time / 5) % 2) continue;
+        ctx.save(); ctx.translate(k.x, k.y - 6 + bob);
+        ctx.strokeStyle = '#7fd1ff'; ctx.lineWidth = 2.5;
+        for (let i = 0; i < 3; i++) { ctx.beginPath(); ctx.arc(0, 0, 13, rot + i * TAU / 3, rot + i * TAU / 3 + 1.2); ctx.stroke(); }
+        ctx.fillStyle = '#0b3d91'; ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(0, 0, 9, 0, TAU); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = '#ffd23f'; ctx.beginPath();
+        ctx.moveTo(1.5, -6); ctx.lineTo(-3.5, 1); ctx.lineTo(0, 1); ctx.lineTo(-1.5, 6); ctx.lineTo(3.5, -1); ctx.lineTo(0, -1); ctx.closePath(); ctx.fill();
+        ctx.restore();
+      }
+      // rüzgar
+      if (sim.wind && Math.random() < 0.9) {
+        const dir = sim.wind.team === 0 ? 1 : -1;
+        for (let i = 0; i < 2; i++) this.fx.add({ x: -dir * C.OW + (Math.random() - 0.5) * 200, y: (Math.random() - 0.5) * 2 * C.OH, vx: dir * (9 + Math.random() * 5), vy: 0, life: 60, max: 60, size: 1.5, color: 'rgba(230,240,255,0.55)', drag: 1, shape: 'l' });
+      }
+
       // mıknatıs alanı
       for (const p of P) if (p.magnet > 0) {
         const [x, y] = pos(p);
@@ -825,7 +938,7 @@
       }
 
       // derinliğe göre sırala (y)
-      const items = [{ y: by, f: () => this.drawBall(ctx, b, bx, by - z, dt, z) }];
+      const items = [{ y: by, f: () => this.drawBall(ctx, b, bx, by - z, dt, z, sim) }];
       for (let i = 0; i < P.length; i++) { const pp = pos(P[i]); items.push({ y: pp[1], f: () => this.drawPlayer(ctx, sim, i, pp, dt) }); }
       items.sort((a, c) => a.y - c.y).forEach(it => it.f());
 
@@ -849,12 +962,44 @@
         ctx.strokeText(ch.name, x, ny); ctx.fillStyle = '#fff'; ctx.fillText(ch.name, x, ny);
       }
 
+      // emoji balonları
+      for (let i = 0; i < 2; i++) {
+        const em = this.emotes[i];
+        if (!em) continue;
+        em.t -= dt;
+        if (em.t <= 0) { this.emotes[i] = null; continue; }
+        const p = P[i], [x, y] = pos(p);
+        const k = Math.min(1, (100 - em.t) / 8), out = Math.min(1, em.t / 12);
+        const sc = (0.6 + 0.4 * k) * out, by2 = y - p.r - 34 - (1 - k) * 10;
+        ctx.save(); ctx.translate(x, by2); ctx.scale(sc, sc);
+        ctx.fillStyle = '#fff'; ctx.strokeStyle = '#0b0f14'; ctx.lineWidth = 2.5;
+        ctx.beginPath(); ctx.roundRect(-17, -17, 34, 30, 10); ctx.fill(); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(-5, 12); ctx.lineTo(0, 20); ctx.lineTo(5, 12); ctx.fill();
+        ctx.font = '20px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(TP.EMOTES[em.e] || '❔', 0, -2);
+        ctx.restore();
+      }
+
       // tribün çatısının gölgesi (üst kenar)
       const sg = ctx.createLinearGradient(0, -C.OH - 40, 0, -C.OH + 70);
       sg.addColorStop(0, 'rgba(0,0,10,0.28)'); sg.addColorStop(1, 'rgba(0,0,10,0)');
       ctx.fillStyle = sg; ctx.fillRect(-C.OW - 40, -C.OH - 40, 2 * C.OW + 80, 110);
 
+      if (this.theme === 'gece') {
+        // projektörle aydınlanan saha, karanlık tribünler
+        ctx.fillStyle = 'rgba(2,6,25,0.72)';
+        ctx.beginPath(); ctx.rect(-C.OW - 400, -C.OH - 400, 2 * C.OW + 800, 2 * C.OH + 800);
+        ctx.rect(-C.OW, -C.OH, 2 * C.OW, 2 * C.OH); ctx.fill('evenodd');
+        const rg = ctx.createRadialGradient(0, 0, C.OH * 0.6, 0, 0, C.OW * 1.1);
+        rg.addColorStop(0, 'rgba(2,6,25,0.12)'); rg.addColorStop(1, 'rgba(2,6,25,0.5)');
+        ctx.fillStyle = rg; ctx.fillRect(-C.OW, -C.OH, 2 * C.OW, 2 * C.OH);
+      }
+      if (this.theme === 'kar' && Math.random() < 0.9) {
+        for (let i = 0; i < 2; i++) this.fx.add({ x: (Math.random() - 0.5) * 2 * (C.OW + 60), y: -C.OH - 60, vx: (Math.random() - 0.3) * 0.6, vy: 1 + Math.random() * 1.2, life: 420, max: 420, size: 1.2 + Math.random() * 1.6, color: 'rgba(255,255,255,0.85)', drag: 1, shape: 'c' });
+      }
       ctx.setTransform(1, 0, 0, 1, 0, 0);
+      const tint = { aksam: 'rgba(255,120,40,0.13)', gece: 'rgba(10,20,70,0.12)', kar: 'rgba(200,220,255,0.10)' }[this.theme];
+      if (tint) { ctx.fillStyle = tint; ctx.fillRect(0, 0, this.cv.width, this.cv.height); }
       if (this.flash > 0.01) { ctx.fillStyle = `rgba(255,255,255,${this.flash * 0.5})`; ctx.fillRect(0, 0, this.cv.width, this.cv.height); }
       const vg = ctx.createRadialGradient(this.cv.width / 2, this.cv.height / 2, Math.min(this.cv.width, this.cv.height) * 0.45, this.cv.width / 2, this.cv.height / 2, Math.max(this.cv.width, this.cv.height) * 0.75);
       vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.45)');
@@ -1017,7 +1162,9 @@
       }
     }
 
-    drawBall(ctx, b, x, y, dt, z) {
+    drawBall(ctx, b, x, y, dt, z, sim) {
+      const fogged = sim && sim.fog > 0;
+      if (fogged) ctx.globalAlpha = 0.07 + 0.05 * Math.sin(this.time * 0.3);
       const sp = Math.hypot(b.vx, b.vy);
       this.ballRot += sp / b.r * dt * 0.6;
       const ang = Math.atan2(b.vy, b.vx);
@@ -1027,12 +1174,13 @@
         ctx.fillStyle = 'rgba(255,120,0,0.35)';
         ctx.beginPath(); ctx.arc(0, 0, r + 5, 0, TAU); ctx.fill();
       }
-      ctx.fillStyle = '#fbfbfb';
+      const bomb = b.bomb > 0, rubber = sim && sim.bouncy > 0;
+      ctx.fillStyle = bomb ? '#2b2d42' : rubber ? '#ff7b00' : '#fbfbfb';
       ctx.beginPath(); ctx.arc(0, 0, r, 0, TAU); ctx.fill();
       ctx.save();
       ctx.beginPath(); ctx.arc(0, 0, r, 0, TAU); ctx.clip();
       ctx.rotate(ang);
-      ctx.fillStyle = b.fire > 0 ? '#d00000' : '#1b1f24';
+      ctx.fillStyle = b.fire > 0 ? '#d00000' : bomb ? '#ff4d00' : rubber ? '#7a3200' : '#1b1f24';
       const D = r * 1.35;
       const roll = (this.ballRot * r) % D;
       for (let row = 0; row < 2; row++) {
@@ -1056,7 +1204,18 @@
       ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, r, 0, TAU); ctx.fill();
       ctx.strokeStyle = '#111'; ctx.lineWidth = 1.6;
       ctx.beginPath(); ctx.arc(0, 0, r - 0.5, 0, TAU); ctx.stroke();
+      if (bomb) {
+        ctx.strokeStyle = '#c9a66b'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(r * 0.5, -r * 0.8); ctx.quadraticCurveTo(r * 1.1, -r * 1.6, r * 0.6, -r * 2); ctx.stroke();
+        if (Math.random() < 0.8) this.fx.add({ x: x + r * 0.6, y: y - r * 2, vx: (Math.random() - 0.5) * 2, vy: -Math.random() * 2, life: 10, max: 10, size: 1.8, color: ['#ffd23f', '#ff9f1c', '#fff'][(Math.random() * 3) | 0] });
+        ctx.strokeStyle = Math.floor(this.time / Math.max(2, b.bomb / 8)) % 2 ? '#ff4d00' : '#ffffff'; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.arc(0, 0, r + 6, -Math.PI / 2, -Math.PI / 2 + TAU * (b.bomb / 100)); ctx.stroke();
+      }
       ctx.restore();
+      ctx.globalAlpha = 1;
+      if (fogged) {
+        for (let i = 0; i < 2; i++) this.fx.add({ x: x + (Math.random() - 0.5) * 40, y: y + (Math.random() - 0.5) * 40, vx: (Math.random() - 0.5) * 0.4, vy: (Math.random() - 0.5) * 0.4, life: 40, max: 40, size: 8 + Math.random() * 8, color: 'rgba(225,230,235,0.35)', drag: 0.98, shape: 'g' });
+      }
     }
 
     drawPlayer(ctx, sim, i, [x, y], dt) {
@@ -1082,7 +1241,15 @@
       else if (p.exhausted) mood = mood || 'tired';
       else if (p.charge >= 1 && p.kickReady) mood = 'angry';
 
+      if (p.fly > 0) { this.flyAng[i] += Math.min(0.6, sp * 0.06) * dt; if (Math.random() < 0.6 * dt) this.ghosts.push({ x: p.x, y: p.y, r: p.r, team: p.team, life: 12 }); }
+      else this.flyAng[i] *= 0.8;
+      if (p.turbo > 0 && sp > 1.5 && Math.random() < 0.7 * dt) {
+        const a = Math.atan2(p.vy, p.vx) + Math.PI + (Math.random() - 0.5) * 0.6;
+        this.fx.add({ x: x + Math.cos(a) * p.r, y: y + Math.sin(a) * p.r, vx: Math.cos(a) * 2, vy: Math.sin(a) * 2, life: 14, max: 14, size: 3, color: ['#ffd23f', '#ff9f1c', '#fff'][(Math.random() * 3) | 0], shape: 'g', drag: 0.9 });
+      }
       ctx.save(); ctx.translate(x, y - hop);
+      if (this.flyAng[i]) ctx.rotate(this.flyAng[i]);
+      if (p.ghost > 0) ctx.globalAlpha = 0.38 + 0.1 * Math.sin(this.time * 0.3);
       const st = Math.min(0.12, sp * 0.02);
       const va = Math.atan2(p.vy, p.vx);
       ctx.rotate(va); ctx.scale(1 + st, 1 - st * 0.7); ctx.rotate(-va);
@@ -1103,6 +1270,7 @@
         for (let k = 0; k < 3; k++) { const a = this.time * 0.15 + k * TAU / 3; ctx.beginPath(); ctx.arc(0, 0, p.r + 11, a, a + 0.8); ctx.stroke(); }
       }
       if (p.giant > 0 && p.giant < 60 && Math.floor(this.time / 5) % 2) ctx.globalAlpha = 0.75;
+      if (p.fly > 0 && !mood) mood = 'stun';
       drawPlayerBody(ctx, p, ch, {
         look: this.look[i], blink, kickReady: p.kickReady, mood, t: this.time, sway: Math.max(-1, Math.min(1, -p.vx * 0.2)),
         feet: { phase: this.stepPhase[i], ang: va, speed: sp },
@@ -1113,6 +1281,18 @@
         ctx.beginPath();
         for (let k = 0; k < 8; k++) { const a = k / 8 * TAU, rr = p.r * (k % 2 ? 1.12 : 1.25); ctx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr); }
         ctx.closePath(); ctx.fill(); ctx.stroke();
+      }
+      if (p.inv > 0) {
+        ctx.strokeStyle = '#ff5d8f'; ctx.lineWidth = 2.5;
+        for (let k = 0; k < 2; k++) { const a = -this.time * 0.25 + k * Math.PI; ctx.beginPath(); ctx.arc(0, 0, p.r + 9, a, a + 1.6); ctx.stroke(); }
+        ctx.fillStyle = '#ff5d8f'; ctx.font = '900 14px Rubik, system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText('?', 0, -p.r - 16);
+      }
+      if (p.hits > 0) {
+        for (let k = 0; k < 3; k++) {
+          ctx.fillStyle = k < p.hits ? '#ffd23f' : 'rgba(0,0,0,0.45)'; ctx.strokeStyle = 'rgba(0,0,0,0.7)'; ctx.lineWidth = 1;
+          ctx.beginPath(); ctx.arc((k - 1) * 8, -p.r - 9, 3, 0, TAU); ctx.fill(); ctx.stroke();
+        }
       }
       if (p.stun > 0) {
         for (let k = 0; k < 3; k++) {

@@ -1,6 +1,6 @@
-# Toparlak Lig ⚽ (v1.9)
+# Toparlak Lig ⚽ (v2.0)
 
-Yuvarlak karakterlerle 1v1 tarayıcı futbolu: sert şut, sprint, yetenek kartları, karakter/forma editörü.
+Yuvarlak karakterlerle sert, arcade 1v1 tarayıcı futbolu: roket şutlar rakibi uçurur, bombalar patlar, 3 darbede rakip sersemler.
 
 **Tarayıcıda oyna:** https://onryzici.github.io/haxball.github.io/
 
@@ -18,9 +18,18 @@ Yuvarlak karakterlerle 1v1 tarayıcı futbolu: sert şut, sprint, yetenek kartla
 Bağlantı koparsa oyun 25 saniye boyunca otomatik yeniden bağlanır. Rakibin girdisi takılırsa oyun ikiniz için de donar, yani boş kaleye gol atılamaz.
 
 ## Yetenek kartları
-Maç başında 9 karttan 3'ünü seçersin. Maçta bu kartlar rastgele sırayla gelir: birini kullanınca sıradaki çıkar.
+Maç başında 19 karttan 3'ünü seçersin. Maçta bu kartlar rastgele sırayla gelir: birini kullanınca sıradaki çıkar.
 
-🚀 Roket Şut · 💨 Atılma · 🌀 Falso · 💥 Şok Dalgası · 🧲 Mıknatıs · 🦍 Dev Mod · 🧊 Buz · ✨ Işınlanma · 🛡️ Kale Duvarı
+🚀 Roket Şut · 💨 Atılma · 🌀 Falso · 💥 Şok Dalgası · 🧲 Mıknatıs · 🦍 Dev Mod · 🧊 Buz · ✨ Işınlanma · 🛡️ Kale Duvarı · 👻 Hayalet · ⚡ Turbo · 🐜 Küçült · 🔄 Ters Kontrol · 💣 Bomba Top · 🧨 Mayın · 🌪️ Rüzgar · 🏀 Lastik Top · 🪄 Topu Çağır · 🌫️ Sis
+
+## Arcade kuralları
+- **Şut tuşu bırakınca vurur.** Ne kadar uzun basılı tutarsan o kadar sert.
+- **Rakibe vur:** top uzaktayken rakibin dibinde şutu bırakırsan ona vurursun. Sert şutla isabet ettirmek de sayılır. **3 isabette rakip sersemler.**
+- **Roket şut** rakibe çarparsa onu havaya uçurur, kalesine kadar gömebilir.
+- Sahaya ara ara **⚡ enerji küresi** düşer: kapan yeteneğini ve koşu barını doldurur.
+- Her golden sonra **ağır çekim tekrar** (Space ile geçilir).
+- **Emoji:** 1-4 (P2: 7-0) 😂🔥😡👍
+- **Stadyum:** gündüz, akşam, gece, karlı ya da rastgele.
 
 ## Tuşlar (menüdeki ⌨️ Tuşlar ekranından değiştirilebilir)
 | | Hareket | Şut | Koş | Yetenek |
@@ -30,7 +39,6 @@ Maç başında 9 karttan 3'ünü seçersin. Maçta bu kartlar rastgele sırayla 
 | Aynı klavye P2 | Oklar | L / . | K / Sağ Shift | J / / |
 | Gamepad | Sol çubuk | A / RT | RB / LT | B / X / Y |
 
-- Şut tuşunu **basılı tutarak** topa yaklaşırsan halka dolar ve **sert şut** atarsın.
 - Şut anında hangi yöne basıyorsan top o yöne kayar.
 - Sprint barı biterse bir süre koşamazsın.
 
