@@ -149,7 +149,7 @@
     intogoal: ['{v} kaleye gömüldü!', 'Topu değil {v}\'yi kaleye soktular!', 'Ağlarda bir oyuncu var: {v}!'],
     boom: ['BOOOM! Ortalık toz duman!', 'Bomba patladı, saha savaş alanı!'],
     mine: ['{v} mayına bastı!', 'Mayın tarlası! {v} havada!'],
-    pickup: ['{n} enerjiyi kaptı, yetenekler hazır!'],
+    pickup: ['{n} enerjiyi kaptı: {a} yeniden hazır!'],
     perfect: ['MÜKEMMEL zamanlama! {n} topu ışınladı!', '{n} saniyesi saniyesine vurdu!'],
     chaos: { buz: 'Zemin buz tuttu! Kimse duramıyor!', devtop: 'Top devleşti! Kaleler daraldı sanki!', meteor: 'Gökten meteor yağıyor! Kırmızı halkalardan kaçın!', turbo: 'Herkese turbo! Hız sınırı yok!' },
     end: ['Ve maç bitti! {n} kazanıyor!', 'Son düdük! Zafer {n}\'nin!'],
@@ -189,7 +189,7 @@
       case 'intogoal': A.boom(false); spiker(fmtLine(pick(LINES.intogoal), { v: nm(e.team) }), 3000, true); break;
       case 'mine': A.boom(false); spiker(fmtLine(pick(LINES.mine), { v: nm(e.team) }), 2500, true); break;
       case 'boom': A.boom(true); spiker(pick(LINES.boom), 2500, true); break;
-      case 'pickup': A.pickup(); spiker(fmtLine(pick(LINES.pickup), { n: nm(e.team) })); break;
+      case 'pickup': A.pickup(); spiker(e.a ? fmtLine(pick(LINES.pickup), { n: nm(e.team), a: TP.ABILITIES[e.a].icon + ' ' + TP.ABILITIES[e.a].name }) : fmtLine('{n} enerjiyi kaptı, koşu barı doldu!', { n: nm(e.team) })); break;
       case 'emote': A.pop(); break;
       case 'perfect': A.perfect(); spiker(fmtLine(pick(LINES.perfect), { n: nm(e.team) }), 2200, true); break;
       case 'bumper': A.bumper(); break;

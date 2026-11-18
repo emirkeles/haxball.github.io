@@ -653,7 +653,7 @@
 
       // Enerji küreleri (yalnızca oda sahibi üretir)
       if (this.phase === 'play') {
-        if (!this.client && ++this.pickTimer > 840 && !this.pickups.length) {
+        if (!this.client && ++this.pickTimer > 1200 && !this.pickups.length) {
           this.pickTimer = 0;
           this.pickups.push({ x: Math.round((Math.random() - 0.5) * 2 * (C.FW - 90)), y: Math.round((Math.random() - 0.5) * 2 * (C.FH - 40)), t: 720 });
           this.emit('pickspawn', {});
@@ -661,8 +661,12 @@
         for (const pk of this.pickups) {
           pk.t--;
           for (const p of P) if (pk.t > 0 && Math.hypot(p.x - pk.x, p.y - pk.y) < p.r + 13) {
-            p.cd = [0, 0, 0]; p.stamina = 1; p.exhausted = false; pk.t = 0;
-            this.emit('pickup', { x: pk.x, y: pk.y, team: p.team });
+            // en uzun bekleyen TEK yeteneği yeniler + koşu barını doldurur
+            let best = -1;
+            for (let k = 0; k < 3; k++) if (p.cd[k] > 0 && (best < 0 || p.cd[k] > p.cd[best])) best = k;
+            if (best >= 0) p.cd[best] = 0;
+            p.stamina = 1; p.exhausted = false; pk.t = 0;
+            this.emit('pickup', { x: pk.x, y: pk.y, team: p.team, a: best >= 0 ? p.deck[best] : null });
           }
         }
         if (this.pickups.length) this.pickups = this.pickups.filter(pk => pk.t > 0);

@@ -805,7 +805,7 @@
         case 'pickup':
           fx.ring(e.x, e.y, 6, 60, 24, '#7fd1ff', 6);
           fx.burst(e.x, e.y, 26, { speed: 4, color: ['#7fd1ff', '#ffffff', '#ffd23f'], life: 30, size: 2.5, shape: 'r' });
-          fx.text(e.x, e.y - 30, 'ENERJİ!', '#7fd1ff', 18);
+          fx.text(e.x, e.y - 30, e.a && TP.ABILITIES[e.a] ? TP.ABILITIES[e.a].icon + ' HAZIR!' : 'ENERJİ!', '#7fd1ff', 18);
           break;
         case 'emote':
           this.emotes[e.team] = { e: e.e, t: 100 };
