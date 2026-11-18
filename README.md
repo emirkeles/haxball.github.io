@@ -1,4 +1,4 @@
-# Toparlak Lig ⚽ (v1.9)
+# Toparlak Lig ⚽ (v1.10)
 
 Yuvarlak karakterlerle 1v1 tarayıcı futbolu: sert şut, sprint, yetenek kartları, karakter/forma editörü.
 
@@ -18,9 +18,9 @@ Yuvarlak karakterlerle 1v1 tarayıcı futbolu: sert şut, sprint, yetenek kartla
 Bağlantı koparsa oyun 25 saniye boyunca otomatik yeniden bağlanır. Rakibin girdisi takılırsa oyun ikiniz için de donar, yani boş kaleye gol atılamaz.
 
 ## Yetenek kartları
-Maç başında 9 karttan 3'ünü seçersin. Maçta bu kartlar rastgele sırayla gelir: birini kullanınca sıradaki çıkar.
+Maç başında 10 karttan 3'ünü seçersin. Maçta bu kartlar rastgele sırayla gelir: birini kullanınca sıradaki çıkar.
 
-🚀 Roket Şut · 💨 Atılma · 🌀 Falso · 💥 Şok Dalgası · 🧲 Mıknatıs · 🦍 Dev Mod · 🧊 Buz · ✨ Işınlanma · 🛡️ Kale Duvarı
+🚀 Roket Şut · 💨 Atılma · 🌀 Falso · 💥 Şok Dalgası · 🧲 Mıknatıs · 🦍 Dev Mod · 🧊 Buz · ✨ Işınlanma · 🛡️ Kale Duvarı · 🧤 Kaleci Eldiveni
 
 ## Tuşlar (menüdeki ⌨️ Tuşlar ekranından değiştirilebilir)
 | | Hareket | Şut | Koş | Yetenek |
