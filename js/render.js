@@ -556,9 +556,13 @@
       this.ghosts = []; this.celebrate = null;
       this.crowd = null; this.teamColors = ['#e63946', '#3a86ff'];
       this.pitch = null; this.stadium = null; this.bakedScale = 0;
-      this.boardOffset = 0; this.theme = 'gunduz'; this.emotes = [null, null]; this.taunts = [null, null]; this.flyAng = [0, 0]; this.bumperFlash = [0, 0, 0, 0];
+      this.boardOffset = 0; this.theme = 'gunduz'; this.emotes = [null, null]; this.taunts = [null, null]; this.flyAng = [0, 0]; this.viewer = 'shared'; this.ballTrail = []; this.bumperFlash = [0, 0, 0, 0];
       this.resize();
     }
+
+    // viewer: bu ekrandaki oyuncunun takımı; 'shared' = aynı klavyede iki kişi
+    setViewer(v) { this.viewer = v; }
+    hidden(p) { return p.ghost > 0 && (this.viewer === 'shared' || this.viewer !== p.team); }
 
     say(team, text) { this.taunts[team] = { text: String(text).slice(0, 48), t: 200 }; }
 
@@ -905,7 +909,9 @@
 
       // gölgeler
       ctx.fillStyle = 'rgba(0,0,0,0.24)';
-      for (const p of P) { const [x, y] = pos(p); ctx.beginPath(); ctx.ellipse(x + 4, y + 7, p.r * 1.0, p.r * 0.85, 0, 0, TAU); ctx.fill(); }
+      for (const p of P) { if (this.hidden(p)) continue; const [x, y] = pos(p); ctx.beginPath(); ctx.ellipse(x + 4, y + 7, p.r * 1.0, p.r * 0.85, 0, 0, TAU); ctx.fill(); }
+      // görünmez hayaletin ara ara ayak izi dalgası
+      for (const p of P) if (this.hidden(p) && Math.hypot(p.vx, p.vy) > 1 && Math.random() < 0.035 * dt) this.fx.ring(p.x, p.y, 4, 22, 22, 'rgba(255,255,255,0.35)', 2);
       const z = this.ballZ;
       ctx.fillStyle = `rgba(0,0,0,${0.26 - Math.min(0.12, z * 0.008)})`;
       ctx.beginPath(); ctx.ellipse(bx + 3 + z * 0.7, by + 5 + z * 0.5, b.r * (1 - Math.min(0.3, z * 0.015)), b.r * 0.85 * (1 - Math.min(0.3, z * 0.015)), 0, 0, TAU); ctx.fill();
@@ -1003,6 +1009,28 @@
       }
       ctx.globalAlpha = 1;
 
+      // falso / roket izi (son konumlar)
+      if (b.curveT > 0 || b.spin || b.rocketT > 0 || b.fire > 0) { this.ballTrail.push([bx, by - this.ballZ]); if (this.ballTrail.length > 22) this.ballTrail.shift(); }
+      else if (this.ballTrail.length) this.ballTrail.splice(0, 2);
+      if (this.ballTrail.length > 2) {
+        const curve = b.curveT > 0 || b.spin;
+        ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+        for (let i = 1; i < this.ballTrail.length; i++) {
+          const k = i / this.ballTrail.length;
+          ctx.strokeStyle = curve ? `rgba(178,141,255,${k * 0.75})` : `rgba(255,${Math.round(120 + 80 * k)},0,${k * 0.8})`;
+          ctx.lineWidth = b.r * (curve ? 1.3 : 1.8) * k;
+          ctx.beginPath(); ctx.moveTo(this.ballTrail[i - 1][0], this.ballTrail[i - 1][1]); ctx.lineTo(this.ballTrail[i][0], this.ballTrail[i][1]); ctx.stroke();
+        }
+        if (curve && Math.random() < 0.6) this.fx.add({ x: bx + (Math.random() - 0.5) * 10, y: by + (Math.random() - 0.5) * 10, vx: 0, vy: 0, life: 22, max: 22, size: 2, color: ['#b28dff', '#e0c3ff', '#ffffff'][(Math.random() * 3) | 0], shape: 'r', vr: 0.3 });
+      }
+      if (b.rocketT > 0) {
+        const v = Math.hypot(b.vx, b.vy) || 1, ux = b.vx / v, uy = b.vy / v;
+        for (let i = 0; i < 4; i++) this.fx.add({ x: bx - ux * 12 + (Math.random() - 0.5) * 6, y: by - uy * 12 + (Math.random() - 0.5) * 6, vx: -ux * 3 + (Math.random() - 0.5) * 1.5, vy: -uy * 3 + (Math.random() - 0.5) * 1.5,
+          life: 18, max: 18, size: 3 + Math.random() * 4, color: ['#fff3b0', '#ffd23f', '#ff9f1c', '#ff4d00', '#555'][(Math.random() * 5) | 0], shape: 'g', drag: 0.9 });
+        // ses duvarı halkaları
+        if (Math.random() < 0.25) this.fx.ring(bx - ux * 18, by - uy * 18, 4, 26, 12, 'rgba(255,255,255,0.6)', 2);
+      }
+
       // top izi
       if (bs > 5) {
         const tl = Math.min(6, bs * 0.5);
@@ -1013,6 +1041,7 @@
         ctx.beginPath(); ctx.moveTo(bx, by - z); ctx.lineTo(bx - b.vx * tl, by - z - b.vy * tl); ctx.stroke();
       }
 
+      this.drawAim(ctx, sim);
       // derinliğe göre sırala (y)
       const items = [{ y: by, f: () => this.drawBall(ctx, b, bx, by - z, dt, z, sim) }];
       for (let i = 0; i < P.length; i++) { const pp = pos(P[i]); items.push({ y: pp[1], f: () => this.drawPlayer(ctx, sim, i, pp, dt) }); }
@@ -1026,6 +1055,7 @@
       // isim etiketleri + dayanıklılık
       for (let i = 0; i < P.length; i++) {
         const p = P[i], [x, y] = pos(p), ch = this.chars[i];
+        if (this.hidden(p)) continue;
         const ny = y + p.r + 16;
         if (p.stamina < 0.995) {
           const w = 26, h = 3.5;
@@ -1045,6 +1075,7 @@
         em.t -= dt;
         if (em.t <= 0) { this.emotes[i] = null; continue; }
         const p = P[i], [x, y] = pos(p);
+        if (this.hidden(p)) continue;
         const k = Math.min(1, (100 - em.t) / 8), out = Math.min(1, em.t / 12);
         const sc = (0.6 + 0.4 * k) * out, by2 = y - p.r - 34 - (1 - k) * 10;
         ctx.save(); ctx.translate(x, by2); ctx.scale(sc, sc);
@@ -1316,6 +1347,39 @@
       }
     }
 
+    // Roket/falso kuruluyken şut basılıyken topun gideceği yolu göster
+    drawAim(ctx, sim) {
+      const b = sim.ball;
+      for (const p of sim.players) {
+        if (!(p.kickReady && p.kickHeld && (p.rocket > 0 || p.curve > 0)) || this.hidden(p)) continue;
+        const dx = b.x - p.x, dy = b.y - p.y, d = Math.hypot(dx, dy) || 1;
+        if (d - p.r - b.r > C.KICK_RANGE + 30) continue;
+        let nx = dx / d, ny = dy / d;
+        const il = Math.hypot(p.ix, p.iy);
+        if (il > 0.3) { const ux = p.ix / il, uy = p.iy / il; if (ux * nx + uy * ny > 0.05) { const ax = nx + ux * C.AIM_ASSIST, ay = ny + uy * C.AIM_ASSIST, al = Math.hypot(ax, ay) || 1; nx = ax / al; ny = ay / al; } }
+        const rocket = p.rocket > 0;
+        let s = rocket ? 21 : (C.KICK_BASE + C.KICK_CHARGE_BONUS * Math.pow(p.charge, 1.3)) * 1.1;
+        let vx = nx * s, vy = ny * s, x = b.x, y = b.y, spin = 0;
+        if (p.curve > 0) {
+          const lat = p.ix * (-ny) + p.iy * nx;
+          const sign = Math.abs(lat) > 0.2 ? Math.sign(lat) : (Math.sign(p.vx * (-ny) + p.vy * nx) || 1);
+          spin = sign * 0.022;
+        }
+        ctx.save();
+        ctx.strokeStyle = rocket ? 'rgba(255,159,28,0.85)' : 'rgba(178,141,255,0.9)'; ctx.lineWidth = 3; ctx.setLineDash([2, 9]); ctx.lineCap = 'round';
+        ctx.lineDashOffset = -this.time * 2;
+        ctx.beginPath(); ctx.moveTo(x, y);
+        for (let t = 0; t < 70; t++) {
+          if (spin) { const c = Math.cos(spin), sn = Math.sin(spin); const nvx = vx * c - vy * sn; vy = vx * sn + vy * c; vx = nvx; spin *= 0.996; }
+          x += vx; y += vy;
+          if (!(rocket && t < 45)) { vx *= C.BALL_DAMP; vy *= C.BALL_DAMP; }
+          if (Math.abs(y) > C.FH || Math.abs(x) > C.FW + C.GD) break;
+          ctx.lineTo(x, y);
+        }
+        ctx.stroke(); ctx.restore();
+      }
+    }
+
     drawPlayer(ctx, sim, i, [x, y], dt) {
       const p = sim.players[i], ch = this.chars[i], b = sim.ball;
       const target = Math.atan2(b.y - p.y, b.x - p.x);
@@ -1347,7 +1411,7 @@
       }
       ctx.save(); ctx.translate(x, y - hop);
       if (this.flyAng[i]) ctx.rotate(this.flyAng[i]);
-      if (p.ghost > 0) ctx.globalAlpha = 0.38 + 0.1 * Math.sin(this.time * 0.3);
+      if (p.ghost > 0) ctx.globalAlpha = this.hidden(p) ? 0.035 + 0.03 * Math.max(0, Math.sin(this.time * 0.15)) : 0.38 + 0.1 * Math.sin(this.time * 0.3);
       const st = Math.min(0.12, sp * 0.02);
       const va = Math.atan2(p.vy, p.vx);
       ctx.rotate(va); ctx.scale(1 + st, 1 - st * 0.7); ctx.rotate(-va);

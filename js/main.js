@@ -64,7 +64,7 @@
     const a = TP.randomChar(), b = TP.randomChar();
     sim = new TP.Sim({ chars: [a, b], timeLimit: 0, scoreLimit: 0, decks: [TP.randomDeck(), TP.randomDeck()] });
     bots = [new TP.Bot('zor'), new TP.Bot('orta')];
-    R.setTeams([a, b]); R.reset();
+    R.setTeams([a, b]); R.reset(); R.setViewer('shared');
     $('hud').classList.add('hidden');
   }
 
@@ -82,6 +82,7 @@
     lastSnapTk = -1; lastEvId = 0; recentEv = [];
     hostIn = TP.NO_INPUT; pred = []; pendingSnap = null; snapAt = 0; off.fill(0);
     R.setTeams(cs); R.reset();
+    R.setViewer(m === 'local' ? 'shared' : m === 'guest' ? 1 : 0);
     for (const s of SCREENS) $(s).classList.add('hidden');
     $('hud').classList.remove('hidden');
     for (let i = 0; i < 2; i++) {

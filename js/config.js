@@ -1,6 +1,6 @@
 // TOPARLAK — sabitler, yetenekler, renkler
 window.TP = window.TP || {};
-TP.VERSION = 'v3.0 • 18.11.2026';
+TP.VERSION = 'v3.1 • 18.11.2026';
 
 TP.C = {
   TICK: 1 / 60,
@@ -50,9 +50,9 @@ TP.C = {
 
 // Yetenekler
 TP.ABILITIES = {
-  roket:  { name: 'Roket Şut',   icon: '🚀', cd: 9.5, desc: 'Sonraki şutun alev alır: füze gibi gider. Rakibe çarparsa onu havaya uçurur, belki kalesine kadar!' },
+  roket:  { name: 'Roket Şut',   icon: '🚀', cd: 9.5, desc: 'Sonraki şutun füze olur: en sert şutun 1.6 katı hızla gider, yavaşlamaz, kaleye yönelir. Rakibi delip uçurur!' },
   atilma: { name: 'Atılma',      icon: '💨', cd: 4.5, desc: 'Gittiğin yöne ani hız patlaması. Rakibe çarparsan onu itersin.' },
-  falso:  { name: 'Falso',       icon: '🌀', cd: 7,   desc: 'Sonraki şutun kavis alır. Şut anında yana basarak falsonun yönünü seç.' },
+  falso:  { name: 'Falso',       icon: '🌀', cd: 7,   desc: 'Sonraki şutun güçlü kavis alır. Top havadayken sağa/sola basarak kavisi yönet! Basılı tutarken yolu görünür.' },
   sok:    { name: 'Şok Dalgası', icon: '💥', cd: 8,   desc: 'Etrafındaki top ve rakibi güçlü bir dalgayla dışarı fırlatır.' },
   miknatis:{ name: 'Mıknatıs',   icon: '🧲', cd: 10,  desc: '1.6 saniye boyunca topu ayağının önüne, hücum yönüne çeker. Dripling ustası.' },
   dev:    { name: 'Dev Mod',     icon: '🦍', cd: 13,  desc: '5 saniye boyunca büyür ve ağırlaşırsın. Kaleyi kapat, rakibi ez.' },
@@ -60,7 +60,7 @@ TP.ABILITIES = {
   isinlan:{ name: 'Işınlanma',   icon: '✨', cd: 11,   desc: 'Anında topun arkasına, rakip kaleye bakacak şekilde ışınlanırsın.' },
   kalkan: { name: 'Kale Duvarı', icon: '🛡️', cd: 12,  desc: 'Kalenin önüne 4.5 saniyelik sağlam bir duvar dikersin.' },
   eldiven:{ name: 'Kaleci Eldiveni', icon: '🧤', cd: 11, desc: '3 saniye boyunca kendi yarı sahanda topa değersen onu kısa süre tutarsın, şutla bırakırsın. Roketleri de tutar.' },
-  hayalet:{ name: 'Hayalet',     icon: '👻', cd: 9,   desc: '3.3 saniye boyunca rakibin içinden geçersin. Mayınlara da basmazsın.' },
+  hayalet:{ name: 'Hayalet',     icon: '👻', cd: 9,   desc: '4 saniye boyunca RAKİP SENİ GÖREMEZ, içinden geçersin, mayınlara basmazsın.' },
   turbo:  { name: 'Turbo',       icon: '⚡', cd: 11,  desc: '4 saniye boyunca çok hızlısın ve koşu barın hiç azalmaz.' },
   kucult: { name: 'Küçült',      icon: '🐜', cd: 11,  desc: 'Rakibi 5 saniye minicik yapar: yavaş itilir, şutları zayıf.' },
   ters:   { name: 'Ters Kontrol',icon: '🔄', cd: 12,  desc: 'Rakibin tuşları 3 saniye ters çalışır. Sola basan sağa gider!' },
