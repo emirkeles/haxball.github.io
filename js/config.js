@@ -1,6 +1,6 @@
 // TOPARLAK — sabitler, yetenekler, renkler
 window.TP = window.TP || {};
-TP.VERSION = 'v2.8 • 18.11.2026';
+TP.VERSION = 'v2.9 • 18.11.2026';
 
 TP.C = {
   TICK: 1 / 60,
@@ -66,7 +66,7 @@ TP.ABILITIES = {
   ters:   { name: 'Ters Kontrol',icon: '🔄', cd: 12,  desc: 'Rakibin tuşları 3 saniye ters çalışır. Sola basan sağa gider!' },
   bomba:  { name: 'Bomba Top',   icon: '💣', cd: 10,  desc: 'Top 1.7 saniye sonra patlar: yakındakiler savrulur, rakip sersemler.' },
   mayin:  { name: 'Mayın',       icon: '🧨', cd: 7,   desc: 'Bulunduğun yere mayın bırakırsın (en fazla 2). Rakip basarsa havaya uçar.' },
-  ruzgar: { name: 'Rüzgar',      icon: '🌪️', cd: 10,  desc: '3.5 saniye boyunca top ve rakip, rakip kaleye doğru rüzgarla itilir.' },
+  ruzgar: { name: 'Rüzgar',      icon: '🌪️', cd: 20,  desc: '3.5 saniye boyunca top ve rakip, rakip kaleye doğru rüzgarla itilir.' },
   lastik: { name: 'Lastik Top',  icon: '🏀', cd: 9,   desc: '7 saniye boyunca top duvarlardan fırlar ve neredeyse hiç yavaşlamaz.' },
   cagir:  { name: 'Topu Çağır',  icon: '🪄', cd: 14,  desc: 'Top nerede olursa olsun anında ayağının önüne gelir.' },
   sis:    { name: 'Sis',         icon: '🌫️', cd: 9,   desc: 'Top 2.8 saniye boyunca neredeyse görünmez olur. Kafalar karışsın!' },
