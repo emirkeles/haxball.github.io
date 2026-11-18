@@ -226,7 +226,7 @@
       const el = $('centerText');
       if (!el.classList.contains('show') || el.textContent !== 'HAZIR') { el.textContent = 'HAZIR'; el.classList.add('show'); el.classList.remove('pop'); clearTimeout(centerText.tm); }
     }
-    if (net && (mode === 'host' || mode === 'guest')) $('ping').textContent = `ping ${Math.round(net.rtt)} ms${net.via === 'relay' ? ' • sunucu' : ''}`;
+    if (net && (mode === 'host' || mode === 'guest')) $('ping').textContent = `ping ${Math.round(net.rtt)} ms${net.via === 'relay' ? ' • sunucu' : net.via === 'lan' ? ' • yerel ağ' : ''}`;
   }
 
   // ---------- maç sonu ----------
@@ -522,7 +522,24 @@
     $('onlineChoose').classList.remove('hidden');
     $('onlineWait').classList.add('hidden'); $('lobby').classList.add('hidden'); $('onlineError').classList.add('hidden');
     if (code) { $('joinCode').value = code; doJoin(); }
+    else if (TP.Net.LAN) startRoomPoll();
   }
+  // yerel ağdaki açık odalar
+  let roomPoll = null;
+  function startRoomPoll() {
+    stopRoomPoll();
+    const tick = () => TP.Net.lanRooms((list) => {
+      const el = $('lanRooms');
+      if (!list) { el.classList.add('hidden'); return; }
+      el.classList.remove('hidden');
+      el.innerHTML = list.length
+        ? '<div class="rooms-h">Açık odalar</div>' + list.map(r => `<button class="btn small room" data-code="${r.code}">⚽ ${esc(r.name)} <b>${r.code}</b> — Katıl</button>`).join('')
+        : '<div class="rooms-h">Henüz açık oda yok…</div>';
+    });
+    tick(); roomPoll = setInterval(() => { if (visible('online') && visible('onlineChoose')) tick(); }, 2000);
+  }
+  function stopRoomPoll() { clearInterval(roomPoll); roomPoll = null; }
+  $('lanRooms').onclick = (e) => { const b = e.target.closest('.room'); if (!b) return; $('joinCode').value = b.dataset.code; doJoin(); };
   function onlineErr(msg) {
     const el = $('onlineError'); el.textContent = msg; el.classList.remove('hidden');
     $('spinner').classList.add('hidden');
@@ -531,6 +548,7 @@
     n.on('error', (m) => onlineErr(m));
     n.on('status', (m) => { $('onlineStatus').textContent = m; });
     n.on('connected', (via) => {
+      stopRoomPoll();
       $('onlineStatus').textContent = via === 'relay' ? 'Bağlandı (sunucu üzerinden)!' : 'Bağlandı!';
       n.send({ t: 'hello', ch: chars[0] });
       A.uiOk();
@@ -545,7 +563,7 @@
   function doHost() {
     A.init();
     if (net) net.close();
-    net = TP.Net.host(); wireNet(net);
+    net = TP.Net.host(chars[0].name); wireNet(net);
     $('onlineChoose').classList.add('hidden'); $('onlineWait').classList.remove('hidden'); $('onlineError').classList.add('hidden');
     $('codeBox').classList.add('hidden'); $('spinner').classList.remove('hidden');
     $('onlineStatus').textContent = 'Oda kuruluyor…';
@@ -571,7 +589,7 @@
   $('copyCode').onclick = () => copy($('roomCode').textContent);
   $('copyLink').onclick = () => copy(location.origin + location.pathname + '#' + $('roomCode').textContent);
   function copy(s) { (navigator.clipboard ? navigator.clipboard.writeText(s) : Promise.reject()).then(() => toast('Kopyalandı: ' + s)).catch(() => toast(s, 5000)); }
-  $('onlineBack').onclick = () => { A.ui(); if (net) { net.close(); net = null; } show('menu'); };
+  $('onlineBack').onclick = () => { A.ui(); stopRoomPoll(); if (net) { net.close(); net = null; } show('menu'); };
   $('startOnline').onclick = () => { if (net && net.role === 'host' && opponentChar) hostBeginDraft(); };
 
   function refreshLobby() {
@@ -696,7 +714,12 @@
   setInterval(() => { if (document.hidden && mode === 'host') pump(performance.now(), 120); }, 50);
 
   // ---------- başlat ----------
-  $('version').textContent = TP.VERSION;
+  $('version').textContent = TP.VERSION + (TP.Net.LAN ? ' • yerel ağ' : '');
+  if (TP.Net.LAN) {
+    $('onlineBtnTitle').textContent = 'Yerel Ağda Oyna';
+    $('onlineBtnSub').textContent = 'Aynı ağdaki arkadaşınla, gecikmesiz';
+    $('onlineTitle').textContent = 'Yerel Ağ 1v1';
+  }
   startAttract();
   show('menu');
   const hash = location.hash.replace('#', '').toUpperCase();

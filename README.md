@@ -19,5 +19,10 @@ Yuvarlak karakterlerle 1v1 tarayıcı futbolu. Sert şut, özel yetenekler, form
 ## Yetenekler
 🚀 Roket Şut · 💨 Atılma · 🌀 Falso · 💥 Şok Dalgası · 🧲 Mıknatıs · 🦍 Dev Mod
 
+## Aynı ağda (ofis/ev) gecikmesiz oynama
+1. `Oyunu Baslat.command` dosyasına çift tıkla (ya da terminalde `npm install && node server.js`).
+2. Terminalde yazan adresi aç: sen `http://localhost:8080`, arkadaşın `http://<senin-IP>:8080`.
+3. Biriniz **Yerel Ağda Oyna → Oda Kur**, diğeri listede çıkan odaya **Katıl**.
+
 ## Lokal çalıştırma
 `index.html`'e çift tıklamak yeterli. Online mod için internet gerekir.

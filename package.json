@@ -1,0 +1,9 @@
+{
+  "name": "toparlak-lig",
+  "version": "1.7.0",
+  "private": true,
+  "description": "Toparlak Lig — yerel ağ (LAN) sunucusu",
+  "main": "server.js",
+  "scripts": { "start": "node server.js" },
+  "dependencies": { "ws": "^8.18.0" }
+}

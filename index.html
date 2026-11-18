@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;600;700;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=6">
+<link rel="stylesheet" href="css/style.css?v=7">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='44' fill='%23e63946' stroke='%23111' stroke-width='8'/><circle cx='38' cy='44' r='9' fill='white'/><circle cx='62' cy='44' r='9' fill='white'/><circle cx='40' cy='45' r='4'/><circle cx='64' cy='45' r='4'/></svg>">
 </head>
 <body>
@@ -49,7 +49,7 @@
           <button data-v="kolay">Kolay</button><button data-v="orta">Orta</button><button data-v="zor">Zor</button>
         </div>
         <button class="btn big" data-go="local"><span class="ic">⌨️</span><span><b>Aynı Klavyede</b><small>Yan yana 2 kişi (gamepad de olur)</small></span></button>
-        <button class="btn big accent" data-go="online"><span class="ic">🌐</span><span><b>Online Oyna</b><small>Oda kodu ile arkadaşınla</small></span></button>
+        <button class="btn big accent" data-go="online"><span class="ic">🌐</span><span><b id="onlineBtnTitle">Online Oyna</b><small id="onlineBtnSub">Oda kodu ile arkadaşınla</small></span></button>
       </div>
       <div class="menu-col card char-card">
         <canvas id="menuPreview" width="220" height="220"></canvas>
@@ -107,7 +107,7 @@
 <!-- ONLINE -->
 <div id="online" class="screen hidden">
   <div class="online-wrap card">
-    <h2>Online 1v1</h2>
+    <h2 id="onlineTitle">Online 1v1</h2>
     <div id="onlineChoose">
       <div class="online-grid">
         <div class="ocol">
@@ -119,6 +119,7 @@
           <h3>Odaya katıl</h3>
           <p>Arkadaşının verdiği kodu yaz.</p>
           <div class="joinrow"><input id="joinCode" maxlength="5" placeholder="KOD" autocomplete="off"><button class="btn accent" id="joinBtn">Katıl</button></div>
+          <div id="lanRooms" class="hidden"></div>
         </div>
       </div>
     </div>
@@ -240,13 +241,13 @@
 
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script src="https://unpkg.com/mqtt@5.10.1/dist/mqtt.min.js"></script>
-<script src="js/config.js?v=6"></script>
-<script src="js/sim.js?v=6"></script>
-<script src="js/bot.js?v=6"></script>
-<script src="js/audio.js?v=6"></script>
-<script src="js/input.js?v=6"></script>
-<script src="js/render.js?v=6"></script>
-<script src="js/net.js?v=6"></script>
-<script src="js/main.js?v=6"></script>
+<script src="js/config.js?v=7"></script>
+<script src="js/sim.js?v=7"></script>
+<script src="js/bot.js?v=7"></script>
+<script src="js/audio.js?v=7"></script>
+<script src="js/input.js?v=7"></script>
+<script src="js/render.js?v=7"></script>
+<script src="js/net.js?v=7"></script>
+<script src="js/main.js?v=7"></script>
 </body>
 </html>

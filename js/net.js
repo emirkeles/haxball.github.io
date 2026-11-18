@@ -191,9 +191,61 @@
     }
   }
 
+  // ---------- YEREL AĞ (kendi sunucumuz: node server.js) ----------
+  const LAN = /^https?:$/.test(location.protocol) && !/github\.io$/.test(location.hostname) && !/[?&]online=1/.test(location.search);
+  const wsURL = () => (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws';
+
+  class LanSession {
+    constructor(role) {
+      this.role = role; this.via = 'lan'; this.handlers = {}; this.connected = false; this.closed = false; this.rtt = 0; this.code = null;
+    }
+    on(ev, fn) { this.handlers[ev] = fn; return this; }
+    fire(ev, a) { const f = this.handlers[ev]; if (f) f(a); }
+    send(msg) { if (this.ws && this.ws.readyState === 1) { try { this.ws.send(JSON.stringify(msg)); } catch (e) {} } }
+    _open(first) {
+      const ws = this.ws = new WebSocket(wsURL());
+      const to = setTimeout(() => { if (ws.readyState !== 1) this.fire('error', 'Oyun sunucusuna bağlanılamadı. Sunucu açık mı?'); }, 5000);
+      ws.onopen = () => { clearTimeout(to); first(); };
+      ws.onerror = () => { if (!this.connected) this.fire('error', 'Oyun sunucusuna bağlanılamadı. Sunucu açık mı?'); };
+      ws.onclose = () => { clearInterval(this.pingTimer); if (!this.closed && this.connected) { this.connected = false; this.fire('lost'); } };
+      ws.onmessage = (ev) => {
+        let m; try { m = JSON.parse(ev.data); } catch (e) { return; }
+        switch (m.t) {
+          case '_code': this.code = m.code; this.fire('code', m.code); return;
+          case '_err': this.fire('error', m.msg); return;
+          case '_left': if (this.connected) { this.connected = false; this.fire('lost'); } return;
+          case '_joined':
+            if (this.connected) return;
+            this.connected = true; this.code = m.code;
+            this.pingTimer = setInterval(() => this.send({ t: 'ping', ts: performance.now() }), 1000);
+            this.fire('connected', 'lan');
+            return;
+          case 'ping': this.send({ t: 'pong', ts: m.ts }); return;
+          case 'pong': this.rtt = performance.now() - m.ts; return;
+        }
+        this.fire('msg', m);
+      };
+    }
+    host(name) { this._open(() => this.send({ t: '_host', name })); return this; }
+    join(code) { this._open(() => this.send({ t: '_join', code: String(code || '').toUpperCase() })); return this; }
+    close() { this.closed = true; clearInterval(this.pingTimer); try { this.ws && this.ws.close(); } catch (e) {} }
+  }
+
+  // Yerel ağdaki açık odaları listele
+  function lanRooms(cb) {
+    let ws;
+    try { ws = new WebSocket(wsURL()); } catch (e) { cb(null); return; }
+    const t = setTimeout(() => { try { ws.close(); } catch (e) {} cb(null); }, 3000);
+    ws.onopen = () => ws.send(JSON.stringify({ t: '_rooms' }));
+    ws.onmessage = (ev) => { clearTimeout(t); let m; try { m = JSON.parse(ev.data); } catch (e) {} ws.close(); cb(m && m.rooms || []); };
+    ws.onerror = () => { clearTimeout(t); cb(null); };
+  }
+
   TP.Net = {
-    available: () => typeof window.Peer === 'function' || typeof window.mqtt !== 'undefined',
-    host: () => new Session('host').host(),
-    join: (code) => new Session('guest').join(code),
+    LAN,
+    available: () => LAN || typeof window.Peer === 'function' || typeof window.mqtt !== 'undefined',
+    host: (name) => LAN ? new LanSession('host').host(name) : new Session('host').host(),
+    join: (code) => LAN ? new LanSession('guest').join(code) : new Session('guest').join(code),
+    lanRooms,
   };
 })();
