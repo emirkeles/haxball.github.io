@@ -545,6 +545,9 @@
   //  RENDERER
   // =====================================================================
   const TRAIL_N = 64, TRAIL_T = 10; // hız izi: halka tampon boyu, iz süresi (tick)
+  // gol tekrarı (goalTimer tick'i cinsinden): START'ta başlar (~1 sn canlı kutlamadan sonra), en geç END'de biter (santradan önce)
+  const RP = { START: 265, END: 24, SPEED: 0.55, LEN: 135, POST: 15, FADE: 8, MAX: 180, ZOOM: 1.55 };
+
   class Renderer {
     constructor(canvas) {
       this.cv = canvas; this.ctx = canvas.getContext('2d');
@@ -559,6 +562,7 @@
       this.crowd = null; this.teamColors = ['#e63946', '#3a86ff'];
       this.pitch = null; this.stadium = null; this.bakedScale = 0;
       this.boardOffset = 0; this.theme = 'gunduz'; this.emotes = [null, null]; this.taunts = [null, null]; this.flyAng = [0, 0]; this.viewer = 'shared'; this.ballTrail = []; this.bumperFlash = [0, 0, 0, 0];
+      this.rec = []; this.rp = null; this.rpArm = null; this.rpFade = 0; this.cam = null;
       this.resize();
     }
 
@@ -579,6 +583,7 @@
       this.fx = new FX(); this.ghosts = []; this.confettiT = 0; this.hype = 0; this.shake = 0; this.flash = 0; this.zoomPunch = 0;
       this.celebrate = null; this.ballZ = 0; this.ballVZ = 0; this.emotes = []; this.taunts = [];
       this.trailN = 0; this.trailK = 0;
+      this.rec = []; this.rp = null; this.rpArm = null; this.rpFade = 0; this.cam = null;
     }
 
     // chars: oyuncu başına karakter; teams: oyuncu başına takım (varsayılan 0,1)
@@ -649,6 +654,7 @@
 
     // ---- Olay tabanlı efektler ----
     onEvent(e) {
+      if (this.rp && e.k !== 'kickoff' && e.k !== 'end') return; // tekrar sırasında canlı efekt yok
       const fx = this.fx;
       const tc = (t) => this.teamColors[t] || '#fff';
       switch (e.k) {
@@ -769,7 +775,7 @@
         }
         case 'kickoff':
           this.trailN = 0;
-          this.hype = Math.max(this.hype, 0.2); this.celebrate = null;
+          this.hype = Math.max(this.hype, 0.2); this.celebrate = null; this.rec = [];
           break;
         case 'hit':
           fx.burst(e.x, e.y, 8, { speed: 3, color: ['#fff', '#ffd23f'], life: 16, size: 2 });
@@ -852,8 +858,91 @@
       }
     }
 
-    // ---- Ana çizim ----
+    // ---- Gol tekrarı: yalnızca çizim, sim/ağ etkilenmez ----
+    // Çizilen son ~3 sn kaydedilir; gol beklemesinde (goalTimer) ağır çekimde, yakın kamerayla oynatılır.
+    replayGoal() { const r = this.rec; if (r.length > 1 && r[r.length - 1].t - r[0].t >= 30) this.rpArm = this.time; }
+    skipReplay() { const rp = this.rp; if (rp && rp.g0 - rp.g > 12) rp.g1 = Math.max(rp.g1, rp.g - RP.FADE); }
+    get replaying() { return !!this.rp; }
+
     draw(sim, dt, ext) {
+      ext = ext || 0;
+      const g = sim.phase === 'goal' ? sim.goalTimer - ext : -1;
+      if (this.rpArm != null && (this.time - this.rpArm > 120 || sim.phase === 'over')) this.rpArm = null;
+      if (this.rpArm != null && g > 0 && g <= RP.START) this.startReplay(g);
+      let rp = this.rp;
+      if (rp && (g < rp.g1 || g > rp.g0 + 30)) { this.rp = rp = null; this.rpFade = RP.FADE; this.netWobble = [[0, 0, 0], [0, 0, 0]]; this.ballZ = 0; this.ballVZ = 0; }
+      let dark = 0;
+      if (rp) {
+        rp.g = g;
+        const f = this.replayFrame(rp, rp.t0 + Math.max(0, rp.g0 - g) * RP.SPEED, dt * RP.SPEED);
+        const keep = { fx: this.fx, ghosts: this.ghosts, celebrate: this.celebrate, confettiT: this.confettiT, shake: this.shake, zoomPunch: this.zoomPunch, flash: this.flash, netWobble: this.netWobble, ballTrail: this.ballTrail };
+        Object.assign(this, { fx: rp.fx, ghosts: rp.ghosts, celebrate: null, confettiT: 0, shake: 0, zoomPunch: 0, flash: 0, netWobble: f.nw, ballZ: f.z, ballVZ: 0,
+          ballTrail: rp.ballTrail, trailN: rp.trailN, trailI: rp.trailI, trailK: rp.trailK });
+        this.cam = rp.cam;
+        this.drawScene(f, dt * RP.SPEED, 0);
+        this.cam = null; rp.ghosts = this.ghosts;
+        Object.assign(rp, { ballTrail: this.ballTrail, trailN: this.trailN, trailI: this.trailI, trailK: this.trailK });
+        Object.assign(this, keep, { trailN: 0, trailK: 0 });
+        dark = Math.max(0, 1 - (rp.g0 - g) / RP.FADE, 1 - (g - rp.g1) / RP.FADE);
+        const ctx = this.ctx, W = this.cv.width, H = this.cv.height;
+        const vg = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.3, W / 2, H / 2, Math.max(W, H) * 0.7);
+        vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.5)');
+        ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
+      } else {
+        this.drawScene(sim, dt, ext);
+        // kayıt: bir tick'te en fazla bir kare, gol anından sonra kısa bir süre daha (top ağlarda)
+        const live = sim.phase === 'play' || sim.phase === 'kickoff' || (g > C.GOAL_PAUSE - RP.POST);
+        if (live && this.time - (this.recT || 0) >= 0.9) { this.recT = this.time; this.recFrame(sim, ext); }
+        if (this.rpArm != null && g > RP.START) dark = Math.max(0, 1 - (g - RP.START) / RP.FADE);
+        if (this.rpFade > 0) { dark = Math.max(dark, this.rpFade / RP.FADE); this.rpFade -= dt; }
+      }
+      if (dark > 0.01) { const ctx = this.ctx; ctx.fillStyle = `rgba(0,0,0,${Math.min(1, dark)})`; ctx.fillRect(0, 0, this.cv.width, this.cv.height); }
+    }
+
+    recFrame(sim, ext) {
+      const cp = (o) => Object.assign({}, o, { x: o.x + o.vx * ext, y: o.y + o.vy * ext });
+      const cl = (o) => Object.assign({}, o);
+      this.rec.push({ t: this.time, z: this.ballZ, nw: this.netWobble.map(a => a.slice()), ball: cp(sim.ball), players: sim.players.map(cp),
+        shields: sim.shields.map(cl), mines: sim.mines.map(cl), pickups: sim.pickups.map(cl), meteors: sim.meteors.map(cl), bumpers: sim.bumpers,
+        wind: sim.wind && cl(sim.wind), chaos: sim.chaos && cl(sim.chaos), fog: sim.fog, bouncy: sim.bouncy, lastTouch: sim.lastTouch, phase: 'play' });
+      if (this.rec.length > RP.MAX) this.rec.shift();
+    }
+
+    startReplay(g) {
+      this.rpArm = null;
+      const rec = this.rec;
+      if (rec.length < 2) return;
+      // golü her zaman göster: kısa kalırsa baştan kırp
+      const t1 = rec[rec.length - 1].t, t0 = Math.max(rec[0].t, t1 - RP.LEN, t1 - (g - RP.END) * RP.SPEED);
+      if (t1 - t0 < 30) return; // santradan hemen sonraki gol: gösterecek bir şey yok
+      const frames = rec.filter(f => f.t >= t0), b = frames[0].ball;
+      this.rp = { frames, t0, t1, g0: g, g1: g - (t1 - t0) / RP.SPEED, g, i: 0, fx: new FX(), ghosts: [], ballTrail: [], trailN: 0, trailI: 0, trailK: 0, cam: { x: b.x, y: b.y, z: RP.ZOOM } };
+    }
+
+    replayFrame(rp, ft, dt) {
+      const fr = rp.frames;
+      ft = Math.min(ft, rp.t1);
+      let i = rp.i;
+      while (i < fr.length - 2 && fr[i + 1].t <= ft) i++;
+      while (i > 0 && fr[i].t > ft) i--;
+      rp.i = i;
+      const a = fr[i], c = fr[Math.min(i + 1, fr.length - 1)], k = c.t > a.t ? Math.max(0, Math.min(1, (ft - a.t) / (c.t - a.t))) : 0;
+      // ışınlanma gibi büyük sıçramalarda ara kare yok
+      const L = (u, v) => Math.abs(v - u) > 60 ? (k < 0.5 ? u : v) : u + (v - u) * k;
+      const mix = (o, q) => Object.assign({}, o, { x: L(o.x, q.x), y: L(o.y, q.y) });
+      const f = Object.assign({}, a, { ball: mix(a.ball, c.ball), players: a.players.map((p, j) => mix(p, c.players[j])), z: a.z + (c.z - a.z) * k, nw: a.nw.map(w => w.slice()) });
+      // kamera topu yumuşakça izler, yavaşça yaklaşır; saha dışına taşmaz
+      const cam = rp.cam, u = (ft - rp.t0) / Math.max(1, rp.t1 - rp.t0), s = this.scale * cam.z;
+      cam.z = RP.ZOOM + 0.25 * u;
+      const fk = 1 - Math.pow(0.9, dt / RP.SPEED);
+      cam.x += (f.ball.x - cam.x) * fk; cam.y += (f.ball.y - cam.y) * fk;
+      const mx = Math.max(0, C.OW + 80 - this.w / 2 / s), my = Math.max(0, C.OH + 80 - this.h / 2 / s);
+      cam.x = Math.max(-mx, Math.min(mx, cam.x)); cam.y = Math.max(-my, Math.min(my, cam.y));
+      return f;
+    }
+
+    // ---- Ana çizim ----
+    drawScene(sim, dt, ext) {
       ext = ext || 0;
       const ctx = this.ctx;
       this.time += dt;
@@ -908,10 +997,12 @@
       // Kamera
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.fillStyle = '#0d1117'; ctx.fillRect(0, 0, this.cv.width, this.cv.height);
-      const s = this.scale * (1 + this.zoomPunch) * this.dpr;
+      const cam = this.cam;
+      const s = this.scale * (cam ? cam.z : 1 + this.zoomPunch) * this.dpr;
       const sx = (Math.random() - 0.5) * this.shake, sy = (Math.random() - 0.5) * this.shake;
       const fx_ = this.zoomPunch * 3 * bx, fy_ = this.zoomPunch * 3 * by;
-      ctx.setTransform(s, 0, 0, s, this.cv.width / 2 + (sx - fx_) * this.dpr * this.scale * 0.5, this.cv.height / 2 + 30 * this.dpr * this.scale + (sy - fy_) * this.dpr * this.scale * 0.5);
+      if (cam) ctx.setTransform(s, 0, 0, s, this.cv.width / 2 - cam.x * s, this.cv.height / 2 + 30 * this.dpr * this.scale - cam.y * s);
+      else ctx.setTransform(s, 0, 0, s, this.cv.width / 2 + (sx - fx_) * this.dpr * this.scale * 0.5, this.cv.height / 2 + 30 * this.dpr * this.scale + (sy - fy_) * this.dpr * this.scale * 0.5);
 
       this.drawStadium(ctx);
       ctx.drawImage(this.pitch, -C.OW, -C.OH, 2 * C.OW, 2 * C.OH);
