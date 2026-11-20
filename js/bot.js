@@ -13,7 +13,8 @@
 
     think(sim, idx) {
       this.t++;
-      const me = sim.players[idx], opp = sim.players[1 - idx], b = sim.ball;
+      const me = sim.players[idx], b = sim.ball;
+      const opp = sim.nearestFoe ? sim.nearestFoe(me, b.x, b.y) : sim.players[1 - idx];
       const side = me.team === 0 ? -1 : 1;              // kendi kalemiz bu tarafta
       const goalX = -side * (C.FW + 10);                // hücum kalesi
       const ownX = side * C.FW;
@@ -33,10 +34,31 @@
       const behind = me.r + b.r + 4;
       let tx = bx - gx * behind, ty = by - gy * behind;
 
+      // Takım rolü: topa en yakın arkadaş topa gider; ikinci destek, üçüncü defans
+      const mates = sim.players.filter(q => q.team === me.team);
+      let rank = 0;
+      if (mates.length > 1) {
+        // herkes aynı sıralamayı hesaplar (eşitlikte oyuncu numarası); top taşıyana küçük öncelik → rol titremez
+        const dist = (q) => Math.hypot(bx - q.x, by - q.y) - (sim.lastToucher === q.i ? 30 : 0);
+        const sorted = mates.slice().sort((a, c) => (dist(a) - dist(c)) || (a.i - c.i));
+        rank = sorted.indexOf(me);
+      }
+
       // Savunma: rakip topa çok daha yakın ve top bizim yarıda ise kaleyle top arasına gir
       const ballOurHalf = side * b.x > -60;
       const myKickoff = sim.phase === 'kickoff' && sim.kickoffTeam === me.team;
-      const defend = !myKickoff && dO + 40 < dB && ballOurHalf;
+      const defend = rank === 0 && !myKickoff && dO + 40 < dB && ballOurHalf;
+      if (rank > 0) {
+        // destek / defans pozisyonu
+        if (rank === 1 && !(ballOurHalf && side * b.x > 120)) {
+          tx = Math.max(-C.FW + 40, Math.min(C.FW - 40, b.x - side * 110));
+          ty = b.y > 0 ? Math.max(-C.FH + 40, b.y - 150) : Math.min(C.FH - 40, b.y + 150);
+        } else {
+          tx = ownX - side * (rank === 1 ? 170 : 110) + (b.x - ownX) * 0.25;
+          ty = Math.max(-C.GH, Math.min(C.GH, b.y * 0.55));
+        }
+        if (sim.phase === 'kickoff') { tx = me.x; ty = me.y; }
+      }
       if (defend) {
         const k = 0.35;
         tx = ownX + (b.x - ownX) * k; ty = b.y * k * 1.4;
@@ -46,14 +68,14 @@
       // Topun yanlış tarafındaysak etrafından dolaş
       const mx = me.x - bx, my = me.y - by;
       const wrongSide = (mx * gx + my * gy) > 0;
-      if (!defend && wrongSide && Math.hypot(mx, my) < 90) {
+      if (rank === 0 && !defend && wrongSide && Math.hypot(mx, my) < 90) {
         const perp = (mx * -gy + my * gx) >= 0 ? 1 : -1;
         tx = bx - gx * 30 + -gy * perp * 42; ty = by - gy * 30 + gx * perp * 42;
       }
 
       // Topun arkasında ve hizalıysak içinden geç (dripling)
       const nearBall = Math.hypot(me.x - bx, me.y - by) < me.r + b.r + 14;
-      if (!defend && !wrongSide && nearBall) { tx = bx + gx * 20; ty = by + gy * 20; }
+      if (rank === 0 && !defend && !wrongSide && nearBall) { tx = bx + gx * 20; ty = by + gy * 20; }
 
       let dx = tx - me.x, dy = ty - me.y;
       const dl = Math.hypot(dx, dy);

@@ -564,7 +564,9 @@
     setViewer(v) { this.viewer = v; }
     hidden(p) { return p.ghost > 0 && (this.viewer === 'shared' || this.viewer !== p.team); }
 
-    say(team, text) { this.taunts[team] = { text: String(text).slice(0, 48), t: 200 }; }
+    // i: oyuncu numarası
+    say(i, text) { this.taunts[i] = { text: String(text).slice(0, 48), t: 200 }; }
+    setMe(i) { this.me = i; }
 
     setTheme(t) {
       if (t === this.theme && this.pitch) return;
@@ -573,12 +575,21 @@
 
     reset() {
       this.fx = new FX(); this.ghosts = []; this.confettiT = 0; this.hype = 0; this.shake = 0; this.flash = 0; this.zoomPunch = 0;
-      this.celebrate = null; this.ballZ = 0; this.ballVZ = 0; this.emotes = [null, null]; this.taunts = [null, null];
+      this.celebrate = null; this.ballZ = 0; this.ballVZ = 0; this.emotes = []; this.taunts = [];
     }
 
-    setTeams(chars) {
+    // chars: oyuncu başına karakter; teams: oyuncu başına takım (varsayılan 0,1)
+    setTeams(chars, teams) {
       this.chars = chars;
-      this.teamColors = [chars[0].c1, chars[1].c1];
+      this.pteam = teams && teams.length === chars.length ? teams : chars.map((_, i) => i % 2);
+      this.teamMode = chars.length > 2;
+      this.teamChars = [0, 1].map(t => chars[Math.max(0, this.pteam.indexOf(t))]);
+      this.teamColors = [this.teamChars[0].c1, this.teamChars[1].c1];
+      const n = chars.length;
+      const fill = (a, f) => { const o = (a || []).slice(0, n); while (o.length < n) o.push(f(o.length)); return o; };
+      this.look = fill(this.look, i => this.pteam[i] ? Math.PI : 0); this.blinkT = fill(this.blinkT, () => 100 + Math.random() * 100);
+      this.stepPhase = fill(this.stepPhase, () => 0); this.flyAng = fill(this.flyAng, () => 0);
+      this.emotes = []; this.taunts = []; this.me = -1;
       this.buildCrowd();
     }
 
@@ -617,7 +628,7 @@
             let team = sideTeam < 0 ? (x < 0 ? 0 : 1) : sideTeam;
             if (rnd() < 0.12) team = 1 - team;
             const fan = rnd() < 0.7;
-            const col = fan ? (rnd() < 0.72 ? this.teamColors[team] : this.chars[team].c2) : neutrals[(rnd() * neutrals.length) | 0];
+            const col = fan ? (rnd() < 0.72 ? this.teamColors[team] : this.teamChars[team].c2) : neutrals[(rnd() * neutrals.length) | 0];
             out.push({ x: x + (rnd() - 0.5) * 2, y: y + (rnd() - 0.5) * 2, c: col, skin: skins[(rnd() * skins.length) | 0], team, ph: rnd() * TAU, sp: 0.8 + rnd() * 0.6,
               flag: fan && rnd() < 0.04, vertical });
           }
@@ -746,7 +757,7 @@
           break;
         }
         case 'goal': {
-          const col = tc(e.team), col2 = this.chars ? this.chars[e.team].c2 : '#fff';
+          const col = tc(e.team), col2 = this.teamChars ? this.teamChars[e.team].c2 : '#fff';
           const gx = e.team === 0 ? C.FW + C.GD * 0.5 : -C.FW - C.GD * 0.5;
           fx.burst(gx, e.y, 28, { speed: 7, color: [col, col2, '#fff', '#ffd23f'], life: 80, size: 3.5, shape: 'r', drag: 0.95, vz: 5 });
           fx.ring(e.x, e.y, 10, 160, 40, '#fff', 10);
@@ -812,7 +823,7 @@
           fx.text(e.x, e.y - 30, e.a && TP.ABILITIES[e.a] ? TP.ABILITIES[e.a].icon + ' HAZIR!' : 'ENERJİ!', '#7fd1ff', 18);
           break;
         case 'emote':
-          this.emotes[e.team] = { e: e.e, t: 100 };
+          this.emotes[e.pi != null ? e.pi : e.team] = { e: e.e, t: 100 };
           break;
         case 'perfect':
           fx.burst(e.x, e.y, 30, { dir: Math.atan2(e.ny, e.nx), spread: 1.2, speed: 7, color: ['#ffffff', '#7fd1ff', '#ffd23f'], life: 28, size: 3 });
@@ -835,7 +846,7 @@
           break;
         case 'end':
           this.hype = 1; this.hypeTeam = e.winner;
-          this.confettiT = 120; this.confettiCols = e.winner >= 0 ? [tc(e.winner), this.chars[e.winner].c2, '#fff', '#ffd23f'] : ['#fff', '#ffd23f'];
+          this.confettiT = 120; this.confettiCols = e.winner >= 0 ? [tc(e.winner), this.teamChars[e.winner].c2, '#fff', '#ffd23f'] : ['#fff', '#ffd23f'];
           if (e.winner >= 0) this.celebrate = { team: e.winner, scorer: e.winner, t: 100000 };
           break;
       }
@@ -1066,10 +1077,19 @@
         ctx.font = '700 11px Rubik, system-ui, sans-serif'; ctx.textAlign = 'center';
         ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,0.6)';
         ctx.strokeText(ch.name, x, ny); ctx.fillStyle = '#fff'; ctx.fillText(ch.name, x, ny);
+        if (this.teamMode) {
+          const tw = Math.min(46, ctx.measureText(ch.name).width);
+          ctx.fillStyle = this.teamColors[p.team]; ctx.fillRect(x - tw / 2, ny + 2, tw, 2);
+          if (i === this.me) {
+            const ay = y - p.r - 12 - Math.abs(Math.sin(this.time * 0.08)) * 3;
+            ctx.beginPath(); ctx.moveTo(x - 7, ay - 9); ctx.lineTo(x + 7, ay - 9); ctx.lineTo(x, ay); ctx.closePath();
+            ctx.fillStyle = '#fff'; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = '#0b0f14'; ctx.stroke();
+          }
+        }
       }
 
       // emoji balonları
-      for (let i = 0; i < 2; i++) {
+      for (let i = 0; i < P.length; i++) {
         const em = this.emotes[i];
         if (!em) continue;
         em.t -= dt;
@@ -1088,7 +1108,7 @@
       }
 
       // laf balonları
-      for (let i = 0; i < 2; i++) {
+      for (let i = 0; i < P.length; i++) {
         const tt = this.taunts && this.taunts[i];
         if (!tt) continue;
         tt.t -= dt;
@@ -1101,7 +1121,7 @@
         let bx2 = Math.max(-C.OW + w / 2, Math.min(C.OW - w / 2, x));
         const by2 = y - p.r - 30 - (this.emotes[i] ? 42 : 0);
         ctx.translate(bx2, by2); ctx.scale((0.7 + 0.3 * k) * out, (0.7 + 0.3 * k) * out);
-        ctx.fillStyle = '#ffffff'; ctx.strokeStyle = this.teamColors[i]; ctx.lineWidth = 3;
+        ctx.fillStyle = '#ffffff'; ctx.strokeStyle = this.teamColors[this.pteam ? this.pteam[i] : i]; ctx.lineWidth = 3;
         ctx.beginPath(); ctx.roundRect(-w / 2, -h, w, h, 12); ctx.fill(); ctx.stroke();
         ctx.beginPath(); ctx.moveTo(x - bx2 - 6, 0); ctx.lineTo(x - bx2, 9); ctx.lineTo(x - bx2 + 6, 0); ctx.fill();
         ctx.fillStyle = '#0b0f14'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
@@ -1171,7 +1191,7 @@
         { x: -OW - o - bw, y: -OH - o, w: bw, h: 2 * (OH + o), horiz: false },
         { x: OW + o, y: -OH - o, w: bw, h: 2 * (OH + o), horiz: false },
       ];
-      const msg = '  TOPARLAK LİG   ●   SERT ŞUT   ●   1v1   ●  ';
+      const msg = '  TOPARLAK LİG   ●   SERT ŞUT   ●   1v1 • 2v2 • 3v3   ●  ';
       ctx.font = '900 9px Rubik, system-ui, sans-serif'; ctx.textBaseline = 'middle';
       const mw = ctx.measureText(msg).width;
       const cols = ['#ffd23f', '#ffffff', this.teamColors[0], this.teamColors[1]];

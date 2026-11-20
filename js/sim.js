@@ -110,14 +110,18 @@
       this.walls = buildWalls();
       this.posts = buildPosts();
       const decks = opts.decks || [];
-      this.players = [makePlayer(0, opts.chars[0], decks[0]), makePlayer(1, opts.chars[1], decks[1])];
+      // takımlar: opts.teams = [0,1,0,1…] (oyuncu başına). Varsayılan 1v1.
+      const teams = opts.teams && opts.teams.length === opts.chars.length ? opts.teams : opts.chars.map((_, i) => i % 2);
+      const cnt = [0, 0];
+      this.players = opts.chars.map((ch, i) => { const p = makePlayer(teams[i], ch, decks[i]); p.i = i; p.slot = cnt[p.team]++; return p; });
+      this.teamSize = cnt;
       this.shields = []; this.mines = []; this.pickups = []; this.wind = null; this.fog = 0; this.bouncy = 0; this.pickTimer = 0; this.client = !!opts.client; this.hitstop = 0;
       this.map = opts.map || 'klasik';
       this.bumpers = this.map === 'langirt'
         ? [{ x: 0, y: -125, r: 20 }, { x: 0, y: 125, r: 20 }, { x: -265, y: 0, r: 16 }, { x: 265, y: 0, r: 16 }].map(b => Object.assign(b, { invMass: 0, vx: 0, vy: 0 }))
         : [];
       this.chaosOn = !!opts.chaos; this.chaos = null; this.chaosTimer = 0; this.meteors = [];
-      this.ball = { x: 0, y: 0, vx: 0, vy: 0, r: C.BALL_R, invMass: C.BALL_INVMASS, fire: 0, fireTeam: -1, spin: 0, bomb: 0, bombTeam: -1, curveT: 0, curveTeam: -1, rocketT: 0 };
+      this.ball = { x: 0, y: 0, vx: 0, vy: 0, r: C.BALL_R, invMass: C.BALL_INVMASS, fire: 0, fireTeam: -1, spin: 0, bomb: 0, bombTeam: -1, curveT: 0, curveTeam: -1, curveBy: -1, rocketT: 0 };
       this.score = [0, 0];
       this.tick = 0;
       this.timeLeft = this.opts.timeLimit > 0 ? this.opts.timeLimit * 60 : -1;
@@ -136,6 +140,14 @@
     }
 
     emit(k, data) { this.events.push(Object.assign({ id: ++this.evId, k }, data)); }
+    foes(p) { return this.players.filter(o => o.team !== p.team); }
+    // p'ye (ya da x,y noktasına) en yakın rakip
+    nearestFoe(p, x, y) {
+      x = x == null ? p.x : x; y = y == null ? p.y : y;
+      let best = null, bd = 1e9;
+      for (const o of this.players) { if (o.team === p.team) continue; const d = Math.hypot(o.x - x, o.y - y); if (d < bd) { bd = d; best = o; } }
+      return best || this.players[0];
+    }
 
     resetKickoff(first) {
       const b = this.ball;
@@ -143,7 +155,11 @@
       this.shields = []; this.mines = []; this.wind = null; this.fog = 0; this.bouncy = 0; b.bomb = 0; this.meteors = [];
       this.players.forEach((p, i) => {
         const side = p.team === 0 ? -1 : 1;
-        p.x = side * 200; p.y = 0; p.vx = 0; p.vy = 0;
+        const n = this.teamSize[p.team], k = p.slot;
+        // 1: ortada; 2: üst-alt; 3: biri önde, ikisi arkada kanatlarda
+        const F = n === 1 ? [[200, 0]] : n === 2 ? [[200, -85], [200, 85]] : [[170, 0], [300, -125], [300, 125]];
+        const f = F[k] || [200 + 60 * k, 0];
+        p.x = side * f[0]; p.y = f[1]; p.vx = 0; p.vy = 0;
         p.kickReady = false; p.charge = 0; p.dash = 0; p.stun = 0; p.magnet = 0; p.giant = 0; p.kickBuf = 0; p.slow = 0;
         p.kickRel = 0; p.ghost = 0; p.turbo = 0; p.mini = 0; p.inv = 0; p.hits = 0; p.hitT = 0; p.fly = 0;
         p.glove = 0; p.hold = 0;
@@ -158,7 +174,7 @@
     useAbility(p, ax, ay, k) {
       const used = p.deck[k];
       const A = TP.ABILITIES[used];
-      const opp = this.players[1 - p.team];
+      const opp = this.nearestFoe(p);
       const b = this.ball;
       p.cd[k] = p.cdMax[k] = Math.round(A.cd * 60);
       this.stats.abil[p.team]++;
@@ -182,11 +198,14 @@
           const dd = p.r + b.r + 8;
           extra.fx = p.x; extra.fy = p.y;
           let tx = b.x - gx * dd, ty = b.y - gy * dd;
-          // hedef rakibin üstüne denk gelirse yanına kay (iç içe doğup savrulmasınlar)
-          const need = p.r + opp.r + 2, ox = tx - opp.x, oy = ty - opp.y, od = Math.hypot(ox, oy);
-          if (od < need) {
-            const ux = od > 0.01 ? ox / od : -gx, uy = od > 0.01 ? oy / od : -gy;
-            tx = opp.x + ux * need; ty = opp.y + uy * need;
+          // hedef başka bir oyuncunun üstüne denk gelirse yanına kay (iç içe doğup savrulmasınlar)
+          for (const q of this.players) {
+            if (q === p) continue;
+            const need = p.r + q.r + 2, ox = tx - q.x, oy = ty - q.y, od = Math.hypot(ox, oy);
+            if (od < need) {
+              const ux = od > 0.01 ? ox / od : -gx, uy = od > 0.01 ? oy / od : -gy;
+              tx = q.x + ux * need; ty = q.y + uy * need;
+            }
           }
           p.x = Math.max(-C.OW + p.r, Math.min(C.OW - p.r, tx));
           p.y = Math.max(-C.OH + p.r, Math.min(C.OH - p.r, ty));
@@ -224,7 +243,7 @@
           b.x = Math.max(-C.FW + b.r + 2, Math.min(C.FW - b.r - 2, p.x + gx * d));
           b.y = Math.max(-C.FH + b.r + 2, Math.min(C.FH - b.r - 2, p.y + gy * d));
           b.vx = p.vx; b.vy = p.vy; b.spin = 0; b.fire = 0; b.bomb = 0; b.curveT = 0; b.rocketT = 0;
-          this.lastTouch = p.team;
+          this.lastTouch = p.team; this.lastToucher = p.i;
           break;
         }
         case 'falso': p.curve = 300; break;
@@ -243,7 +262,7 @@
         }
         case 'sok': {
           const R = 135;
-          for (const o of [b, opp]) {
+          for (const o of [b, ...this.foes(p)]) {
             const dx = o.x - p.x, dy = o.y - p.y;
             const d = Math.hypot(dx, dy) || 1;
             if (d < R + o.r) {
@@ -257,7 +276,7 @@
           break;
         }
       }
-      this.emit('ab', Object.assign({ a: used, team: p.team, x: p.x, y: p.y }, extra));
+      this.emit('ab', Object.assign({ a: used, team: p.team, pi: p.i, x: p.x, y: p.y }, extra));
     }
 
     registerHit(p, n) {
@@ -267,15 +286,15 @@
         p.stun = Math.max(p.stun, 120); p.kickReady = false; p.charge = 0;
         this.stats.dizzy[1 - p.team]++;
         this.hitstop = Math.max(this.hitstop, 5);
-        this.emit('dizzy', { team: p.team, x: p.x, y: p.y });
-      } else this.emit('hit', { team: p.team, x: p.x, y: p.y, n: p.hits });
+        this.emit('dizzy', { team: p.team, pi: p.i, x: p.x, y: p.y });
+      } else this.emit('hit', { team: p.team, pi: p.i, x: p.x, y: p.y, n: p.hits });
     }
 
     tackle(p, o, d) {
       const nx = (o.x - p.x) / (d || 1), ny = (o.y - p.y) / (d || 1);
       o.kickReady = false; o.charge = 0;
       p.tackleCd = 30; p.kickReady = false; p.kickRel = 0; p.charge = 0;
-      this.emit('tackle', { x: (p.x + o.x) / 2, y: (p.y + o.y) / 2, team: p.team });
+      this.emit('tackle', { x: (p.x + o.x) / 2, y: (p.y + o.y) / 2, team: p.team, pi: p.i });
       this.registerHit(o, 1);
     }
 
@@ -315,17 +334,18 @@
         const lat = p.ix * (-ny) + p.iy * nx;
         let sign = Math.abs(lat) > 0.2 ? Math.sign(lat) : (Math.sign(p.vx * (-ny) + p.vy * nx) || 1);
         b.spin = sign * 0.022; // bastığın yöne kıvrılır
-        b.curveT = 75; b.curveTeam = p.team;
+        b.curveT = 75; b.curveTeam = p.team; b.curveBy = p.i;
         if (kind !== 'rocket') { b.vx *= 1.1; b.vy *= 1.1; }
         p.curve = 0; kind = kind === 'kick' ? 'curve' : kind;
       }
       p.vx -= nx * C.KICK_RECOIL; p.vy -= ny * C.KICK_RECOIL;
+      this.lastToucher = p.i;
       p.kickReady = false; p.kickBuf = 0; p.kickRel = 0;
       this.lastTouch = p.team;
       this.stats.fast[p.team] = Math.max(this.stats.fast[p.team], Math.round(s * 10.8));
       this.stats.kicks[p.team]++;
       if (ch > 0.6) this.stats.power[p.team]++;
-      this.emit(kind, { x: b.x, y: b.y, team: p.team, s, ch, nx, ny });
+      this.emit(kind, { x: b.x, y: b.y, team: p.team, pi: p.i, s, ch, nx, ny });
       p.charge = 0;
     }
 
@@ -340,7 +360,7 @@
       const frozen = this.freeze > 0;
 
       // Girdi + yetenekler
-      for (let i = 0; i < 2; i++) {
+      for (let i = 0; i < P.length; i++) {
         const p = P[i];
         const raw = inputs[i] || NONE;
         const inp = (frozen || p.stun > 0 || p.fly > 0 || this.phase === 'over') ? NONE : raw;
@@ -349,7 +369,7 @@
         // emoji (donukken de atılabilir)
         if (p.emoCd > 0) p.emoCd--;
         const emo = raw.emo || 0;
-        if (emo && emo !== p.lastEmo && p.emoCd <= 0 && this.phase !== 'goal') { this.emit('emote', { team: p.team, e: emo }); p.emoCd = 40; }
+        if (emo && emo !== p.lastEmo && p.emoCd <= 0 && this.phase !== 'goal') { this.emit('emote', { team: p.team, pi: p.i, e: emo }); p.emoCd = 40; }
         p.lastEmo = emo;
         const l = Math.hypot(ax, ay);
         if (l > 1) { ax /= l; ay /= l; }
@@ -381,7 +401,7 @@
           acc *= C.SPRINT_MULT;
           if (p.turbo <= 0 && !chaosTurbo) p.stamina = Math.max(0, p.stamina - C.STAMINA_DRAIN);
           p.stDelay = C.STAMINA_DELAY;
-          if (p.stamina <= 0) { p.exhausted = true; this.emit('tired', { team: p.team, x: p.x, y: p.y }); }
+          if (p.stamina <= 0) { p.exhausted = true; this.emit('tired', { team: p.team, pi: p.i, x: p.x, y: p.y }); }
         } else if (p.stDelay > 0) p.stDelay--;
         else p.stamina = Math.min(1, p.stamina + C.STAMINA_REGEN * (p.exhausted ? 1.25 : 1));
         p.vx += ax * acc; p.vy += ay * acc;
@@ -429,7 +449,7 @@
       if (this.wind) {
         const dir = this.wind.team === 0 ? 1 : -1;
         b.vx += dir * 0.085;
-        const o = P[1 - this.wind.team]; o.vx += dir * 0.03;
+        for (const o of P) if (o.team !== this.wind.team) o.vx += dir * 0.03;
         if (--this.wind.t <= 0) this.wind = null;
       }
       for (const sh of this.shields) sh.t--;
@@ -439,7 +459,7 @@
       // Falso: top havadayken şutu atan sağa/sola basarak kavisi yönetir
       if (b.curveT > 0) {
         b.curveT--;
-        const o = P[b.curveTeam], v = Math.hypot(b.vx, b.vy);
+        const o = P[b.curveBy >= 0 ? b.curveBy : b.curveTeam], v = Math.hypot(b.vx, b.vy);
         if (o && v > 1) {
           const steer = (o.ix * (-b.vy) + o.iy * b.vx) / v; // topun gidişine göre sağ/sol
           b.spin = Math.max(-0.045, Math.min(0.045, b.spin + steer * 0.0026));
@@ -467,11 +487,13 @@
       }
 
       // Alt adımlı hareket + çarpışma
-      const maxV = Math.max(Math.hypot(b.vx, b.vy), Math.hypot(P[0].vx, P[0].vy), Math.hypot(P[1].vx, P[1].vy));
+      let maxV = Math.hypot(b.vx, b.vy);
+      for (const p of P) maxV = Math.max(maxV, Math.hypot(p.vx, p.vy));
       const N = Math.min(4, Math.max(1, Math.ceil(maxV / 6)));
-      let wallHit = 0, postHit = 0, netHit = 0, bump = 0, touch = [0, 0], bumperHit = null;
+      let wallHit = 0, postHit = 0, netHit = 0, bump = 0, bumpAt = null, touch = [0, 0], bumperHit = null;
       for (let k = 0; k < N; k++) {
-        for (const o of [b, P[0], P[1]]) { o.x += o.vx / N; o.y += o.vy / N; }
+        b.x += b.vx / N; b.y += b.vy / N;
+        for (const o of P) { o.x += o.vx / N; o.y += o.vy / N; }
         // oyuncu - top
         for (const p of P) {
           const fireBefore = b.fire > 0 && b.fireTeam !== p.team;
@@ -490,27 +512,29 @@
               p.fly = 70; p.flyGoal = false; p.stun = Math.max(p.stun, 80); p.kickReady = false;
               b.vx = bvx * 0.8; b.vy = bvy * 0.8; // top delip geçer
               this.hitstop = 7;
-              this.emit('burn', { x: p.x, y: p.y, team: p.team, nx: dx, ny: dy });
+              this.emit('burn', { x: p.x, y: p.y, team: p.team, pi: p.i, nx: dx, ny: dy });
             } else if (hitNow && sp > 7.5) {
               // sert şut isabeti: savur
               const dx = bvx / sp, dy = bvy / sp, k = (sp - 4) * 0.95 * (p.giant > 0 ? 0.5 : 1);
               p.vx += dx * k; p.vy += dy * k;
               if (sp > 11) { p.fly = Math.round(sp * 1.5); p.flyGoal = false; }
               if (sp > 10) this.hitstop = 4;
-              this.emit('smack', { x: p.x, y: p.y, team: p.team, s: sp });
+              this.emit('smack', { x: p.x, y: p.y, team: p.team, pi: p.i, s: sp });
             }
             if (hitNow) this.registerHit(p, fireBefore ? 2 : 1);
             b.spin = 0; b.curveT = 0;
           }
         }
-        // oyuncu - oyuncu
-        const c = (P[0].ghost > 0 || P[1].ghost > 0) ? null : collideCircles(P[0], P[1], 0.3);
-        if (c) {
-          const rv = -c.rv;
-          for (let i = 0; i < 2; i++) {
-            const p = P[i], o = P[1 - i];
-            if (p.dash > 0 && o.dash <= 0) {
-              const s = i === 0 ? -1 : 1; // normal P0'dan P1'e işaret
+        // oyuncu - oyuncu (her çift)
+        for (let i = 0; i < P.length; i++) for (let j = i + 1; j < P.length; j++) {
+          const A = P[i], B = P[j];
+          if (A.ghost > 0 || B.ghost > 0) continue;
+          const c = collideCircles(A, B, 0.3);
+          if (!c) continue;
+          const rv = -c.rv, was = bump;
+          for (const [p, o, s] of [[A, B, -1], [B, A, 1]]) { // normal B'den A'ya
+            // atılma yalnız rakibi savurur
+            if (p.dash > 0 && o.dash <= 0 && p.team !== o.team) {
               o.vx += c.nx * s * 9 * o.invMass * 2; o.vy += c.ny * s * 9 * o.invMass * 2;
               o.stun = Math.max(o.stun, 20); o.fly = Math.max(o.fly, 30); this.hitstop = 4;
               p.dash = 0;
@@ -518,6 +542,7 @@
             }
           }
           if (rv > 1.5) bump = Math.max(bump, rv);
+          if (bump > was) bumpAt = [(A.x + B.x) / 2, (A.y + B.y) / 2];
         }
         // duvarlar
         for (const w of this.walls) {
@@ -553,22 +578,26 @@
       if (touch[0] || touch[1]) {
         if (touch[0] && !touch[1]) this.lastTouch = 0;
         else if (touch[1] && !touch[0]) this.lastTouch = 1;
+        // golcüyü bulmak için topa en son değen oyuncu
+        let near = -1, nd = 1e9;
+        for (const p of P) { if (!touch[p.team]) continue; const d = Math.hypot(b.x - p.x, b.y - p.y) - p.r - b.r; if (d < nd) { nd = d; near = p.i; } }
+        if (near >= 0) this.lastToucher = near;
       }
       if (bumperHit) this.emit('bumper', { x: bumperHit.x, y: bumperHit.y, i: this.bumpers.indexOf(bumperHit) });
       if (wallHit > 2) this.emit('wall', { x: b.x, y: b.y, s: wallHit });
       if (postHit > 1.5) this.emit('post', { x: b.x, y: b.y, s: postHit });
       if (netHit > 1) this.emit('net', { x: b.x, y: b.y, s: netHit, side: Math.sign(b.x) });
       for (const p of P) if (p.slam) {
-        this.emit('slam', { x: p.x, y: p.y, team: p.team, s: p.slam });
+        this.emit('slam', { x: p.x, y: p.y, team: p.team, pi: p.i, s: p.slam });
         if (p.slam > 8) this.registerHit(p, 1);
         p.slam = 0;
       }
       // uçarak kaleye girdi mi
       for (const p of P) if (p.fly > 0 && !p.flyGoal && Math.abs(p.x) > C.FW + p.r * 0.5 && Math.abs(p.y) < C.GH) {
         p.flyGoal = true;
-        this.emit('intogoal', { x: p.x, y: p.y, team: p.team, own: Math.sign(p.x) === (p.team === 0 ? -1 : 1) });
+        this.emit('intogoal', { x: p.x, y: p.y, team: p.team, pi: p.i, own: Math.sign(p.x) === (p.team === 0 ? -1 : 1) });
       }
-      if (bump > 0) this.emit('bump', { x: (P[0].x + P[1].x) / 2, y: (P[0].y + P[1].y) / 2, s: bump });
+      if (bump > 0 && bumpAt) this.emit('bump', { x: bumpAt[0], y: bumpAt[1], s: bump });
 
       // Kaleci eldiveni: kendi yarında topa değince kısa süre tut
       for (const p of P) {
@@ -585,7 +614,7 @@
           if (p.hold === 0) { b.vx += fx * 2.5; b.vy += fy * 2.5; p.glove = 0; }
         } else if (p.glove > 0 && touch[p.team] && this.phase === 'play' && atk * b.x < 20) {
           p.hold = C.GLOVE_HOLD;
-          this.emit('catch', { x: b.x, y: b.y, team: p.team });
+          this.emit('catch', { x: b.x, y: b.y, team: p.team, pi: p.i });
         }
       }
 
@@ -595,7 +624,7 @@
         const d = Math.hypot(b.x - p.x, b.y - p.y) - p.r - b.r;
         if (d < C.KICK_RANGE) { this.kick(p); continue; }
         // top uzak ama rakip dibimizdeyse: rakibe vur
-        const o = P[1 - p.team];
+        const o = this.nearestFoe(p);
         const dd = Math.hypot(o.x - p.x, o.y - p.y);
         if (dd - p.r - o.r < C.KICK_RANGE + 3 && p.tackleCd <= 0 && o.ghost <= 0) this.tackle(p, o, dd);
       }
@@ -618,13 +647,13 @@
       if (this.mines.length) {
         for (const m of this.mines) {
           m.t--; if (m.arm > 0) m.arm--;
-          const o = P[1 - m.team];
-          if (m.arm <= 0 && o.ghost <= 0 && Math.hypot(o.x - m.x, o.y - m.y) < o.r + 9) {
+          const o = P.find(q => q.team !== m.team && q.ghost <= 0 && Math.hypot(q.x - m.x, q.y - m.y) < q.r + 9);
+          if (m.arm <= 0 && o) {
             const dx = o.x - m.x, dy = o.y - m.y, d = Math.hypot(dx, dy) || 1;
             o.vx += dx / d * 11; o.vy += dy / d * 11; o.fly = 45; this.hitstop = 5;
             o.stun = Math.max(o.stun, 50); o.kickReady = false;
             m.t = 0;
-            this.emit('mine', { x: m.x, y: m.y, team: o.team });
+            this.emit('mine', { x: m.x, y: m.y, team: o.team, pi: o.i });
             this.registerHit(o, 1);
           }
         }
@@ -661,7 +690,7 @@
       if (this.meteors.length) {
         for (const m of this.meteors) {
           if (--m.t === 0) {
-            for (const o of [b, P[0], P[1]]) {
+            for (const o of [b, ...P]) {
               const dx = o.x - m.x, dy = o.y - m.y, d = Math.hypot(dx, dy) || 1;
               if (d < 85) {
                 const f = 3 + 7 * (1 - d / 85);
@@ -690,7 +719,7 @@
             for (let k = 0; k < 3; k++) if (p.cd[k] > 0 && (best < 0 || p.cd[k] > p.cd[best])) best = k;
             if (best >= 0) p.cd[best] = 0;
             p.stamina = 1; p.exhausted = false; pk.t = 0;
-            this.emit('pickup', { x: pk.x, y: pk.y, team: p.team, a: best >= 0 ? p.deck[best] : null });
+            this.emit('pickup', { x: pk.x, y: pk.y, team: p.team, pi: p.i, a: best >= 0 ? p.deck[best] : null });
           }
         }
         if (this.pickups.length) this.pickups = this.pickups.filter(pk => pk.t > 0);
@@ -731,7 +760,7 @@
           this.phase = 'goal';
           this.goalTimer = C.GOAL_PAUSE;
           this.kickoffTeam = 1 - scorer;
-          this.emit('goal', { team: scorer, own, x: b.x, y: b.y, s: Math.hypot(b.vx, b.vy), score: this.score.slice() });
+          this.emit('goal', { team: scorer, own, pi: this.lastToucher != null ? this.lastToucher : -1, x: b.x, y: b.y, s: Math.hypot(b.vx, b.vy), score: this.score.slice() });
         }
       }
 
@@ -767,7 +796,7 @@
       return {
         tk: this.tick, ph: this.phase, fr: this.freeze, gt: this.goalTimer, tl: this.timeLeft, ot: this.overtime ? 1 : 0,
         sc: this.score, ko: this.kickoffTeam, lt: this.lastTouch, w: this.winner, lg: this.lastGoal,
-        b: [r(b.x), r(b.y), r(b.vx), r(b.vy), b.fire, r(b.spin * 1000), b.fireTeam, b.bomb, b.bombTeam, r(b.r), b.curveT, b.curveTeam, b.rocketT],
+        b: [r(b.x), r(b.y), r(b.vx), r(b.vy), b.fire, r(b.spin * 1000), b.fireTeam, b.bomb, b.bombTeam, r(b.r), b.curveT, b.curveTeam, b.rocketT, b.curveBy, this.lastToucher != null ? this.lastToucher : -1],
         p: this.players.map(p => [r(p.x), r(p.y), r(p.vx), r(p.vy), r(p.r), p.kickReady ? 1 : 0, r(p.charge), p.cd, p.cdMax,
           p.rocket, p.curve, p.magnet, p.giant, p.dash, p.stun, Math.round(p.stamina * 100) / 100, (p.sprinting ? 1 : 0) | (p.exhausted ? 2 : 0), p.deck, p.abMask, p.slow,
           p.kickHeld ? 1 : 0, p.abHeld ? 1 : 0, p.kickRel, p.stDelay, p.ghost, p.turbo, p.mini, p.inv, p.hits, p.hitT, p.tackleCd, p.hitImm, p.fly, p.fullT, p.perfect ? 1 : 0, p.glove, p.hold]),
@@ -786,7 +815,7 @@
       this.overtime = !!s.ot; this.score = s.sc; this.kickoffTeam = s.ko; this.lastTouch = s.lt; this.winner = s.w; this.lastGoal = s.lg;
       const b = this.ball;
       [b.x, b.y, b.vx, b.vy, b.fire] = s.b; b.spin = s.b[5] / 1000; b.fireTeam = s.b[6]; b.bomb = s.b[7] || 0; b.bombTeam = s.b[8]; if (s.b[9]) b.r = s.b[9];
-      b.curveT = s.b[10] || 0; b.curveTeam = s.b[11]; b.rocketT = s.b[12] || 0;
+      b.curveT = s.b[10] || 0; b.curveTeam = s.b[11]; b.rocketT = s.b[12] || 0; b.curveBy = s.b[13] != null ? s.b[13] : -1; this.lastToucher = s.b[14] != null ? s.b[14] : -1;
       s.p.forEach((a, i) => {
         const p = this.players[i];
         [p.x, p.y, p.vx, p.vy, p.r] = a; p.kickReady = !!a[5];

@@ -3,12 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Toparlak Lig — 1v1 Futbol</title>
-<meta name="description" content="Yuvarlak karakterler, sert şutlar ve özel yeteneklerle 1v1 futbol. Aynı klavyede, bota karşı ya da online.">
+<title>Toparlak Lig — Online Futbol</title>
+<meta name="description" content="Yuvarlak karakterler, sert şutlar ve özel yeteneklerle futbol. 1v1, 2v2, 3v3 — aynı klavyede, botlara karşı ya da online.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;600;700;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=22">
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css?v=23">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='44' fill='%23e63946' stroke='%23111' stroke-width='8'/><circle cx='38' cy='44' r='9' fill='white'/><circle cx='62' cy='44' r='9' fill='white'/><circle cx='40' cy='45' r='4'/><circle cx='64' cy='45' r='4'/></svg>">
 </head>
 <body>
@@ -38,46 +38,48 @@
 
 <!-- MENÜ -->
 <div id="menu" class="screen">
-  <div class="menu-wrap">
-    <div class="logo">
-      <div class="logo-ball"></div>
-      <h1>TOPAR<span>LAK</span></h1>
-      <div class="logo-sub">1v1 • SERT ŞUT • ÖZEL YETENEKLER</div>
+  <div class="menu-left">
+    <div class="brand">
+      <h1>TOPAR<span>LAK</span><i class="logo-ball"></i></h1>
+      <div class="tag">Yuvarlak futbolcular · sert şutlar · yetenek kartları</div>
     </div>
-    <div class="menu-grid">
-      <div class="menu-col">
-        <button class="btn big primary" data-go="bot"><span class="ic">🤖</span><span><b>Bota Karşı</b><small>Isın, şutunu çalış</small></span></button>
-        <div class="seg" id="botLevel">
-          <button data-v="kolay">Kolay</button><button data-v="orta">Orta</button><button data-v="zor">Zor</button>
-        </div>
-        <button class="btn big" data-go="local"><span class="ic">⌨️</span><span><b>Aynı Klavyede</b><small>Yan yana 2 kişi (gamepad de olur)</small></span></button>
-        <button class="btn big accent" data-go="online"><span class="ic">🌐</span><span><b id="onlineBtnTitle">Online Oyna</b><small id="onlineBtnSub">Oda kodu ile arkadaşınla</small></span></button>
+
+    <button class="play-card" data-go="online">
+      <span class="pc-ic">🌐</span>
+      <span class="pc-txt"><b id="onlineBtnTitle">Online Oyna</b><small id="onlineBtnSub">Oda kur, linki arkadaşlarına at — 1v1, 2v2, 3v3</small></span>
+      <span class="pc-go">→</span>
+    </button>
+
+    <div class="mode-grid">
+      <button class="tile" data-go="bot"><span class="ic">🤖</span><b>Botlara Karşı</b><small id="botSub">Isın, şutunu çalış</small></button>
+      <button class="tile" data-go="local"><span class="ic">⌨️</span><b>Aynı Klavye</b><small>Yan yana 2 kişi · 1v1</small></button>
+    </div>
+
+    <div class="opts glass">
+      <div class="opt"><span class="lbl">Bot maçı</span><div class="seg" id="botSize"><button data-n="1">1v1</button><button data-n="2">2v2</button><button data-n="3">3v3</button></div></div>
+      <div class="opt"><span class="lbl">Bot seviyesi</span><div class="seg" id="botLevel"><button data-v="kolay">Kolay</button><button data-v="orta">Orta</button><button data-v="zor">Zor</button></div></div>
+      <div class="opt sel">
+        <label>Süre<select id="setTime"><option value="120">2 dk</option><option value="180">3 dk</option><option value="300">5 dk</option><option value="0">Sınırsız</option></select></label>
+        <label>Gol<select id="setGoals"><option value="3">3</option><option value="5">5</option><option value="7">7</option><option value="0">Yok</option></select></label>
+        <label>Mod<select id="setExtra"><option value="yok">Normal</option><option value="langirt">Langırt</option><option value="kaos">Kaos</option><option value="ikisi">Langırt + Kaos</option></select></label>
+        <label>Stadyum<select id="setTheme"><option value="rastgele">Rastgele</option><option value="gunduz">Gündüz</option><option value="aksam">Akşam</option><option value="gece">Gece</option></select></label>
       </div>
-      <div class="menu-col card char-card">
-        <canvas id="menuPreview" width="220" height="220"></canvas>
-        <div class="char-name" id="menuCharName">—</div>
-        <div class="char-ab" id="menuCharAb">Yeteneklerini maç başında kartlarla seçersin</div>
-        <button class="btn" data-go="creator">✏️ Karakterini Düzenle</button>
-      </div>
     </div>
-    <div class="menu-settings">
-      <label>Süre
-        <select id="setTime"><option value="120">2 dk</option><option value="180">3 dk</option><option value="300">5 dk</option><option value="0">Sınırsız</option></select>
-      </label>
-      <label>Gol sınırı
-        <select id="setGoals"><option value="3">3</option><option value="5">5</option><option value="7">7</option><option value="0">Yok</option></select>
-      </label>
-      <label>Ekstra mod
-        <select id="setExtra"><option value="yok">Yok</option><option value="langirt">Langırt (tamponlar)</option><option value="kaos">Kaos (meteor, buz, dev top…)</option><option value="ikisi">Langırt + Kaos</option></select>
-      </label>
-      <label>Stadyum
-        <select id="setTheme"><option value="rastgele">Rastgele</option><option value="gunduz">Gündüz</option><option value="aksam">Akşam</option><option value="gece">Gece</option></select>
-      </label>
-      <button class="btn small ghost" id="muteBtn">🔊 Ses</button>
-      <button class="btn small ghost" data-go="taunts">💬 Laflar</button>
-      <button class="btn small ghost" data-go="keys">⌨️ Tuşlar</button>
-      <button class="btn small ghost" data-go="help">❓ Nasıl Oynanır</button>
+
+    <div class="menu-foot">
+      <button class="link" data-go="help">❓ Nasıl oynanır</button>
+      <button class="link" data-go="keys">⌨️ Tuşlar</button>
+      <button class="link" data-go="taunts">💬 Laflar</button>
+      <button class="link" id="muteBtn">🔊 Ses</button>
     </div>
+  </div>
+
+  <div class="menu-right glass">
+    <div class="lbl">KARAKTERİN</div>
+    <canvas id="menuPreview" width="220" height="220"></canvas>
+    <div class="char-name" id="menuCharName">—</div>
+    <div class="char-ab" id="menuCharAb">Yeteneklerini maç başında kartlarla seçersin</div>
+    <button class="btn" data-go="creator">✏️ Karakter & Forma</button>
   </div>
 </div>
 
@@ -113,47 +115,57 @@
   </div>
 </div>
 
-<!-- ONLINE -->
+<!-- ONLINE: KUR / KATIL -->
 <div id="online" class="screen hidden">
-  <div class="online-wrap card">
-    <h2 id="onlineTitle">Online 1v1</h2>
-    <div id="onlineChoose">
-      <div class="online-grid">
-        <div class="ocol">
-          <h3>Oda kur</h3>
-          <p>Bir kod alırsın, arkadaşına gönderirsin.</p>
-          <button class="btn primary" id="hostBtn">🏟️ Oda Kur</button>
-        </div>
-        <div class="ocol">
-          <h3>Odaya katıl</h3>
-          <p>Arkadaşının verdiği kodu yaz.</p>
-          <div class="joinrow"><input id="joinCode" maxlength="5" placeholder="KOD" autocomplete="off"><button class="btn accent" id="joinBtn">Katıl</button></div>
-          <div id="lanRooms" class="hidden"></div>
-        </div>
+  <div class="online-wrap">
+    <div class="glass panel">
+      <h2 id="onlineTitle">Oda Kur</h2>
+      <p class="muted">Oda senin tarayıcında çalışır, arkadaşların sana bağlanır. Boş kalan yerlerde bot oynar.</p>
+      <div class="lbl">Mod</div>
+      <div class="seg big" id="hostSize"><button data-n="1">1v1</button><button data-n="2">2v2</button><button data-n="3">3v3</button></div>
+      <button class="btn primary wide" id="hostBtn">🏟️ Oda Kur</button>
+    </div>
+    <div class="glass panel">
+      <h2>Odaya Katıl</h2>
+      <p class="muted">Arkadaşının gönderdiği linke tıkla ya da 5 haneli oda kodunu yaz.</p>
+      <div class="joinrow"><input id="joinCode" maxlength="5" placeholder="KOD" autocomplete="off"><button class="btn accent" id="joinBtn">Katıl</button></div>
+      <div id="lanRooms" class="hidden"></div>
+      <div class="status hidden" id="onlineStatusBox"><div class="spinner"></div><span id="onlineStatus"></span></div>
+      <div class="error hidden" id="onlineError"></div>
+    </div>
+  </div>
+  <button class="btn ghost small back" id="onlineBack">← Menü</button>
+</div>
+
+<!-- LOBİ -->
+<div id="lobbyScreen" class="screen hidden">
+  <div class="lobby glass">
+    <div class="lobby-head">
+      <div class="lb-code"><div class="lbl">ODA KODU</div><div class="code" id="lbCode">-----</div></div>
+      <div class="invite">
+        <div class="lbl">Davet linki — arkadaşına gönder, açınca direkt odaya düşer</div>
+        <div class="row tight"><input id="inviteUrl" readonly><button class="btn primary" id="lbCopy">📋 Kopyala</button></div>
       </div>
     </div>
-    <div id="onlineWait" class="hidden">
-      <div class="status" id="onlineStatus">Bağlanıyor…</div>
-      <div class="codebox hidden" id="codeBox">
-        <div class="code" id="roomCode">-----</div>
-        <div class="coderow">
-          <button class="btn small" id="copyCode">Kodu Kopyala</button>
-          <button class="btn small" id="copyLink">Davet Linkini Kopyala</button>
-        </div>
-      </div>
-      <div class="spinner" id="spinner"></div>
+    <div class="lobby-settings">
+      <div class="seg" id="lbSize"><button data-n="1">1v1</button><button data-n="2">2v2</button><button data-n="3">3v3</button></div>
+      <label>Süre<select id="lbTime"><option value="120">2 dk</option><option value="180">3 dk</option><option value="300">5 dk</option><option value="0">Sınırsız</option></select></label>
+      <label>Gol<select id="lbGoals"><option value="3">3</option><option value="5">5</option><option value="7">7</option><option value="0">Yok</option></select></label>
+      <label>Mod<select id="lbExtra"><option value="yok">Normal</option><option value="langirt">Langırt</option><option value="kaos">Kaos</option><option value="ikisi">Langırt + Kaos</option></select></label>
     </div>
-    <div id="lobby" class="hidden">
-      <div class="lobby-vs">
-        <div class="lp"><canvas width="140" height="140" id="lobbyC0"></canvas><div class="lp-name" id="lobbyN0"></div><div class="lp-ab" id="lobbyA0"></div></div>
-        <div class="vs">VS</div>
-        <div class="lp"><canvas width="140" height="140" id="lobbyC1"></canvas><div class="lp-name" id="lobbyN1"></div><div class="lp-ab" id="lobbyA1"></div></div>
-      </div>
-      <div class="lobby-info" id="lobbyInfo"></div>
-      <button class="btn primary big-center" id="startOnline">⚽ Maçı Başlat</button>
+    <div class="teams">
+      <div class="team t0"><div class="team-h"><span>Sol Takım</span><button class="btn small xs" data-join="0">Buraya geç</button></div><div class="slots" id="slots0"></div></div>
+      <div class="vs">VS</div>
+      <div class="team t1"><div class="team-h"><span>Sağ Takım</span><button class="btn small xs" data-join="1">Buraya geç</button></div><div class="slots" id="slots1"></div></div>
     </div>
-    <div class="error hidden" id="onlineError"></div>
-    <button class="btn ghost small back" id="onlineBack">← Menü</button>
+    <div class="spec hidden" id="lbSpecBox"><span class="lbl">İzleyiciler</span><span id="lbSpec"></span></div>
+    <div class="error hidden" id="lbError"></div>
+    <div class="lobby-foot">
+      <button class="btn ghost" id="lbLeave">← Ayrıl</button>
+      <button class="btn ghost small" id="lbEdit">✏️ Karakter</button>
+      <span id="lbInfo" class="muted"></span>
+      <button class="btn primary big-start" id="lbStart">⚽ Başlat</button>
+    </div>
   </div>
 </div>
 
@@ -208,7 +220,7 @@
       <button class="btn ghost" id="draftRandom">🎲 Rastgele</button>
       <button class="btn primary" id="draftOk" disabled>Hazır ✔</button>
     </div>
-    <div class="draft-wait hidden" id="draftWait"><div class="spinner"></div>Rakibin kartlarını seçiyor…</div>
+    <div class="draft-wait hidden" id="draftWait"><div class="spinner"></div>Diğer oyuncular kartlarını seçiyor…</div>
   </div>
 </div>
 
@@ -258,6 +270,7 @@
     <table class="stats" id="endStats"></table>
     <div class="end-btns">
       <button class="btn primary" id="rematchBtn">🔁 Rövanş</button>
+      <button class="btn" id="lobbyBtn">Lobiye Dön</button>
       <button class="btn ghost" id="endMenuBtn">Menü</button>
     </div>
     <div class="muted" id="endNote"></div>
@@ -270,13 +283,13 @@
 
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script src="https://unpkg.com/mqtt@5.10.1/dist/mqtt.min.js"></script>
-<script src="js/config.js?v=22"></script>
-<script src="js/sim.js?v=22"></script>
-<script src="js/bot.js?v=22"></script>
-<script src="js/audio.js?v=22"></script>
-<script src="js/input.js?v=22"></script>
-<script src="js/render.js?v=22"></script>
-<script src="js/net.js?v=22"></script>
-<script src="js/main.js?v=22"></script>
+<script src="js/config.js?v=23"></script>
+<script src="js/sim.js?v=23"></script>
+<script src="js/bot.js?v=23"></script>
+<script src="js/audio.js?v=23"></script>
+<script src="js/input.js?v=23"></script>
+<script src="js/render.js?v=23"></script>
+<script src="js/net.js?v=23"></script>
+<script src="js/main.js?v=23"></script>
 </body>
 </html>
