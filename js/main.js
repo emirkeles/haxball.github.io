@@ -39,7 +39,6 @@
   const off = [0, 0, 0, 0, 0, 0];
   let onlineDecks = [null, null];
   let netPaused = false;
-  let recBuf = [], replay = null;
   const mouse = { x: 0, y: 0 };
   window.addEventListener('mousemove', (e) => { mouse.x = e.clientX; mouse.y = e.clientY; });
 
@@ -77,7 +76,6 @@
     sim = new TP.Sim({ chars: cs, timeLimit: opts.time, scoreLimit: opts.goals, decks, client: m === 'guest', map: opts.map || 'klasik', chaos: !!opts.chaos });
     if (!opts.theme) opts.theme = pickTheme();
     R.setTheme(opts.theme);
-    recBuf = []; replay = null; setReplayUI(false);
     bots = m === 'bot' ? [null, new TP.Bot(settings.bot)] : [];
     lastSnapTk = -1; lastEvId = 0; recentEv = [];
     hostIn = TP.NO_INPUT; pred = []; pendingSnap = null; snapAt = 0; off.fill(0);
@@ -202,7 +200,7 @@
         else if (LINES.ab[e.a]) spiker(fmtLine(LINES.ab[e.a], { n: nm(e.team) })); break;
       case 'whistle': A.whistle(false); centerText('BAŞLA!', 650, true); break;
       case 'goal': {
-        A.goal(); slowT = 0.6; goalBanner(e);
+        A.goal(); slowT = 0.6; goalBanner(e); R.replayGoal();
         const k = Math.round(e.s * 10.8);
         const line = e.own ? pick(LINES.own) : k > 115 ? pick(LINES.goalFast) : pick(LINES.goal);
         spiker(fmtLine(line, { n: nm(e.team), o: nm(1 - e.team), k }), 3500, true);
@@ -816,33 +814,9 @@
       hi: [h.x, h.y, h.kick ? 1 : 0, h.ab ? 1 : 0, h.sp ? 1 : 0] }, true);
   }
 
-  // ---------- GOL TEKRARI ----------
-  function snapFrame(sim) {
-    const cp = (o) => Object.assign({}, o);
-    return { t: performance.now(), ball: cp(sim.ball), players: sim.players.map(cp), shields: sim.shields.map(cp), mines: (sim.mines || []).map(cp),
-      pickups: (sim.pickups || []).map(cp), wind: sim.wind ? cp(sim.wind) : null, fog: sim.fog, bouncy: sim.bouncy };
-  }
-  function scheduleReplay() {
-    const now = performance.now();
-    replay = { goalT: now, start: now + 1500, frames: null, speed: 0.55 };
-  }
-  function setReplayUI(on) { document.body.classList.toggle('replay', !!on); }
-  function replayFrame(now) {
-    if (!replay) return null;
-    if (!sim || sim.phase !== 'goal' || mode === 'attract') { replay = null; setReplayUI(false); return null; }
-    if (now < replay.start) return null;
-    if (!replay.frames) {
-      replay.frames = recBuf.filter(f => f.t >= replay.goalT - 2000 && f.t <= replay.goalT + 300);
-      if (replay.frames.length < 10) { replay = null; return null; }
-      R.reset(); setReplayUI(true);
-    }
-    const fr = replay.frames, t0 = fr[0].t;
-    const tt = t0 + (now - replay.start) * replay.speed;
-    if (tt > fr[fr.length - 1].t) { replay = null; setReplayUI(false); R.reset(); return null; }
-    let i = 0; while (i < fr.length - 1 && fr[i + 1].t < tt) i++;
-    return fr[i];
-  }
-  window.addEventListener('keydown', (e) => { if (replay && replay.frames && (e.code === 'Space' || e.code === 'Enter')) { replay = null; setReplayUI(false); R.reset(); } });
+  // ---------- GOL TEKRARI (yalnızca çizim: kaydı ve oynatmayı R yapar) ----------
+  window.addEventListener('keydown', (e) => { if (!e.repeat && (e.code === 'Space' || e.code === 'Enter')) R.skipReplay(); });
+  canvas.addEventListener('pointerdown', () => R.skipReplay());
 
   // ---------- LAF SOKMA (gol sonrası 5 sn) ----------
   let taunts = load('tp_taunts', null);
@@ -943,16 +917,11 @@
   function frame(now) {
     requestAnimationFrame(frame);
     const { dt, ts, ext } = pump(now, 8);
-    const rf = replayFrame(now);
-    if (rf) {
-      R.draw(rf, dt * 60 * replay.speed, 0);
-    } else {
-      const smooth = mode === 'guest' && sim;
-      if (smooth) nudge(1);
-      if (sim) R.draw(sim, paused ? 0 : dt * 60 * ts, ext);
-      if (smooth) nudge(-1);
-
-    }
+    const smooth = mode === 'guest' && sim;
+    if (smooth) nudge(1);
+    if (sim) R.draw(sim, paused ? 0 : dt * 60 * ts, ext);
+    if (smooth) nudge(-1);
+    document.body.classList.toggle('replay', R.replaying);
     updateHUD();
     updateTauntPanels();
     if (visible('menu')) drawChar($('menuPreview'), chars[0]);
