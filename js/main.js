@@ -207,7 +207,7 @@
     R.onEvent(e);
     if (silent) return;
     const nm = (t) => teamName(t);
-    const pn = (e) => e.pi != null && e.pi >= 0 && matchChars && matchChars[e.pi] ? matchChars[e.pi].name : pn(e);
+    const pn = (e) => e.pi != null && e.pi >= 0 && matchChars && matchChars[e.pi] ? matchChars[e.pi].name : nm(e.team);
     switch (e.k) {
       case 'kick': A.kick(e.s); break;
       case 'curve': A.curve(); break;
