@@ -544,6 +544,7 @@
   // =====================================================================
   //  RENDERER
   // =====================================================================
+  const TRAIL_N = 64, TRAIL_T = 10; // hız izi: halka tampon boyu, iz süresi (tick)
   class Renderer {
     constructor(canvas) {
       this.cv = canvas; this.ctx = canvas.getContext('2d');
@@ -554,6 +555,7 @@
       this.netWobble = [[0, 0, 0], [0, 0, 0]];
       this.look = [0, Math.PI]; this.blinkT = [100, 160]; this.stepPhase = [0, 0];
       this.ghosts = []; this.celebrate = null;
+      this.trail = new Float32Array(TRAIL_N * 3); this.trailP = new Float32Array((TRAIL_N + 1) * 3); this.trailN = 0; this.trailI = 0; this.trailK = 0;
       this.crowd = null; this.teamColors = ['#e63946', '#3a86ff'];
       this.pitch = null; this.stadium = null; this.bakedScale = 0;
       this.boardOffset = 0; this.theme = 'gunduz'; this.emotes = [null, null]; this.taunts = [null, null]; this.flyAng = [0, 0]; this.bumperFlash = [0, 0, 0, 0];
@@ -570,11 +572,13 @@
     reset() {
       this.fx = new FX(); this.ghosts = []; this.confettiT = 0; this.hype = 0; this.shake = 0; this.flash = 0; this.zoomPunch = 0;
       this.celebrate = null; this.ballZ = 0; this.ballVZ = 0; this.emotes = [null, null]; this.taunts = [null, null];
+      this.trailN = 0; this.trailK = 0;
     }
 
     setTeams(chars) {
       this.chars = chars;
       this.teamColors = [chars[0].c1, chars[1].c1];
+      this.teamRGB = this.teamColors.map(c => /^#[0-9a-f]{6}$/i.test(c) ? hexToRgb(c) : [255, 255, 255]);
       this.buildCrowd();
     }
 
@@ -726,6 +730,7 @@
               fx.ring(e.tx, e.ty, 50, 10, 24, '#ff5d8f', 5);
               fx.text(e.tx, e.ty - 36, '?!', '#ff5d8f', 24); break;
             case 'cagir':
+              this.trailN = 0;
               fx.burst(e.fx, e.fy, 18, { speed: 3, color: ['#fff', '#e0c3ff'], life: 24, size: 2.5 });
               fx.ring(e.x, e.y, 40, 6, 18, '#e0c3ff', 4); break;
             case 'turbo':
@@ -754,6 +759,7 @@
           break;
         }
         case 'kickoff':
+          this.trailN = 0;
           this.hype = Math.max(this.hype, 0.2); this.celebrate = null;
           break;
         case 'hit':
@@ -1003,15 +1009,16 @@
       }
       ctx.globalAlpha = 1;
 
-      // top izi
-      if (bs > 5) {
-        const tl = Math.min(6, bs * 0.5);
-        const grd = ctx.createLinearGradient(bx, by - z, bx - b.vx * tl, by - z - b.vy * tl);
-        grd.addColorStop(0, b.fire > 0 ? 'rgba(255,159,28,0.7)' : 'rgba(255,255,255,0.45)');
-        grd.addColorStop(1, 'rgba(255,255,255,0)');
-        ctx.strokeStyle = grd; ctx.lineWidth = b.r * 1.6; ctx.lineCap = 'round';
-        ctx.beginPath(); ctx.moveTo(bx, by - z); ctx.lineTo(bx - b.vx * tl, by - z - b.vy * tl); ctx.stroke();
+      // top hız izi: görsel konumların halka tamponu (ışınlanma / santrada kopar)
+      if (dt > 0) {
+        const T = this.trail, hy = by - z;
+        if (this.trailN) { const j = this.trailI * 3; if (Math.hypot(bx - T[j], hy - T[j + 1]) > 30 + bs * 2.5 * Math.max(1, dt)) this.trailN = 0; }
+        this.trailI = (this.trailI + 1) % TRAIL_N; const j = this.trailI * 3;
+        T[j] = bx; T[j + 1] = hy; T[j + 2] = this.time; this.trailN = Math.min(TRAIL_N, this.trailN + 1);
+        const want = sim.fog > 0 ? 0 : Math.min(1, Math.max(0, (bs - 6) / 2.5));
+        this.trailK = sim.fog > 0 ? 0 : this.trailK + (want - this.trailK) * (1 - Math.pow(want > this.trailK ? 0.6 : 0.9, dt));
       }
+      if (this.trailK > 0.02) this.drawTrail(ctx, sim, b, z, bs);
 
       // derinliğe göre sırala (y)
       const items = [{ y: by, f: () => this.drawBall(ctx, b, bx, by - z, dt, z, sim) }];
@@ -1257,6 +1264,63 @@
             ctx.beginPath(); ctx.arc(sx * FW, sy * GH, POST_R, 0, TAU); ctx.fill(); ctx.stroke();
           }
         }
+      }
+    }
+
+    drawTrail(ctx, sim, b, z, bs) {
+      const T = this.trail, P = this.trailP, K = this.trailK;
+      // pencere içindeki noktalar (yeniden eskiye), kuyruk tam TRAIL_T yaşında kesilir: her yenileme hızında aynı boy
+      let m = 0, L = 0;
+      for (let n = 0; n < this.trailN; n++) {
+        const j = ((this.trailI - n + TRAIL_N) % TRAIL_N) * 3, age = this.time - T[j + 2];
+        let x = T[j], y = T[j + 1], f = age / TRAIL_T;
+        if (age > TRAIL_T) {
+          if (!m) break;
+          const pa = (this.time - T[((this.trailI - n + 1 + TRAIL_N) % TRAIL_N) * 3 + 2]), k = (TRAIL_T - pa) / Math.max(1e-6, age - pa);
+          x = P[m * 3 - 3] + (x - P[m * 3 - 3]) * k; y = P[m * 3 - 2] + (y - P[m * 3 - 2]) * k; f = 1;
+        }
+        if (m) L += Math.hypot(x - P[m * 3 - 3], y - P[m * 3 - 2]);
+        P[m * 3] = x; P[m * 3 + 1] = y; P[m * 3 + 2] = Math.pow(1 - f, 0.75); m++;
+        if (f >= 1) break;
+      }
+      const r = b.r * (1 + Math.min(0.35, z * 0.02));
+      if (m < 2 || L < r) return;
+      const hw = r * (0.55 + 0.35 * K);
+      ctx.beginPath();
+      for (let s = 0; s < 2; s++) for (let k = 0; k < m; k++) {
+        const i = s ? m - 1 - k : k, a = Math.max(0, i - 1) * 3, c = Math.min(m - 1, i + 1) * 3;
+        const tx = P[a] - P[c], ty = P[a + 1] - P[c + 1], tl = Math.hypot(tx, ty) || 1, w = P[i * 3 + 2] * hw * (s ? -1 : 1);
+        const x = P[i * 3] - ty / tl * w, y = P[i * 3 + 1] + tx / tl * w;
+        if (!s && !k) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      }
+      ctx.closePath();
+      // renk: beyaz; alevde turuncu, falsoda lila, çok sert şutta son dokunanın takım rengine kayar
+      let cr = 255, cg = 255, cb = 255, A = 0.5 * K, t = 0, c = null;
+      const kar = this.theme === 'kar';
+      if (b.fire > 0) { cg = 170; cb = 60; A = 0.65 * K; }
+      else if (b.spin) { cr = 215; cg = 195; }
+      else {
+        if (kar) { cr = 190; cg = 218; }
+        if (sim.lastTouch >= 0 && this.teamRGB) { t = Math.min(1, Math.max(0, (bs - 9.5) / 2.5)) * 0.8; c = this.teamRGB[sim.lastTouch]; }
+      }
+      const mix = (k) => t ? `${(cr + (c[0] - cr) * k) | 0},${(cg + (c[1] - cg) * k) | 0},${(cb + (c[2] - cb) * k) | 0}` : `${cr},${cg},${cb}`;
+      const head = mix(t * 0.3), tail = mix(t), x0 = P[0], y0 = P[1], x1 = P[m * 3 - 3], y1 = P[m * 3 - 2];
+      const grd = ctx.createLinearGradient(x0, y0, x1, y1);
+      grd.addColorStop(0, `rgba(${head},${A})`); grd.addColorStop(0.45, `rgba(${tail},${A * (0.45 + 0.2 * t)})`); grd.addColorStop(1, `rgba(${tail},0)`);
+      ctx.fillStyle = grd; ctx.fill();
+      if (kar) { // açık zeminde ince koyu kenar
+        const eg = ctx.createLinearGradient(x0, y0, x1, y1);
+        eg.addColorStop(0, `rgba(20,50,95,${0.4 * K})`); eg.addColorStop(1, 'rgba(20,50,95,0)');
+        ctx.strokeStyle = eg; ctx.lineWidth = 1.2; ctx.stroke();
+      }
+      // tam dolu şutlarda iki yanda hafif hız çizgileri
+      const sl = Math.min(1, Math.max(0, (bs - 10.3) / 2)) * K;
+      if (sl > 0.02) {
+        const ux = b.vx / bs, uy = b.vy / bs, d = r * 1.7;
+        ctx.strokeStyle = grd; ctx.lineWidth = 1.6; ctx.lineCap = 'round'; ctx.globalAlpha = sl;
+        ctx.beginPath();
+        for (let s = -1; s <= 1; s += 2) { const ox = -uy * d * s, oy = ux * d * s; ctx.moveTo(x0 + ox - ux * L * 0.15, y0 + oy - uy * L * 0.15); ctx.lineTo(x0 + ox - ux * L * 0.7, y0 + oy - uy * L * 0.7); }
+        ctx.stroke(); ctx.globalAlpha = 1;
       }
     }
 
